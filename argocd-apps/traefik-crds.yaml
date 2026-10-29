@@ -1,0 +1,28 @@
+# Traefik's own CRDs (IngressRoute, Middleware, ...), pinned. Gateway API CRDs come
+# from gateway-api-crds instead, so they have a single owner.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: traefik-crds
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  project: default
+  source:
+    repoURL: https://traefik.github.io/charts
+    chart: traefik-crds
+    targetRevision: 1.18.0
+    helm:
+      valuesObject:
+        traefik: true
+        gatewayAPI: false
+        hub: false
+  destination:
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true
