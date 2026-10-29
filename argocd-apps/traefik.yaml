@@ -51,6 +51,9 @@ spec:
             enabled: true
         gateway:
           enabled: true
+          listeners:
+            web:
+              port: 80  # must match ports.web.port (chart default is 8000)
         ingressRoute:
           dashboard:
             enabled: false
