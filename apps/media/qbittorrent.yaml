@@ -1,0 +1,110 @@
+# qBittorrent, reached via traefik-gateway at qbit.homelab.lan (http and
+# https). All its traffic goes through the gluetun VPN sidecar
+# (components/gluetun), with a kill switch. Runs alongside the media VM 106,
+# which is untouched; this instance starts with a fresh config. The OMV
+# library is mounted read-write at /data.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: qbittorrent-config
+  namespace: media
+spec:
+  accessModes: [ReadWriteOnce]
+  # No storageClassName: uses the default (local-path).
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qbittorrent
+  namespace: media
+  labels:
+    app: qbittorrent
+    vpn: gluetun  # gets the gluetun sidecar (components/gluetun)
+spec:
+  replicas: 1
+  # RWO volume: old pod must release it before the new one starts.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: qbittorrent
+  template:
+    metadata:
+      labels:
+        app: qbittorrent
+    spec:
+      containers:
+        - name: qbittorrent
+          image: lscr.io/linuxserver/qbittorrent:5.2.3_v2.0.14-ls475
+          env:
+            # OMV squashes root, so writes go through the library's group:
+            # PGID 100 is OMV's default "users" group (K to confirm with
+            # `stat` on OMV). UMASK 002 keeps new files group-writable.
+            - name: PUID
+              value: "1000"
+            - name: PGID
+              value: "100"
+            - name: UMASK
+              value: "002"
+            - name: WEBUI_PORT
+              value: "8080"
+          ports:
+            - name: http
+              containerPort: 8080
+          volumeMounts:
+            - name: config
+              mountPath: /config
+            - name: library
+              mountPath: /data
+          readinessProbe:
+            tcpSocket:
+              port: http
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 1Gi
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: qbittorrent-config
+        - name: library
+          persistentVolumeClaim:
+            claimName: library  # media-library.yaml
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: qbittorrent
+  namespace: media
+spec:
+  selector:
+    app: qbittorrent
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: qbittorrent
+  namespace: media
+spec:
+  parentRefs:
+    - name: traefik-gateway
+      namespace: traefik
+      sectionName: web
+    - name: traefik-gateway
+      namespace: traefik
+      sectionName: websecure
+  hostnames:
+    - qbit.homelab.lan
+  rules:
+    - backendRefs:
+        - name: qbittorrent
+          port: 8080

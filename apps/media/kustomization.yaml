@@ -1,8 +1,8 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-# Namespaced objects only; the cluster-scoped PV in media-library.yaml keeps
-# no namespace.
+# Namespaced objects only (also the generated gluetun ConfigMaps); the
+# cluster-scoped PV in media-library.yaml keeps no namespace.
 namespace: media
 
 resources:
@@ -11,3 +11,16 @@ resources:
   - plex.yaml
   - radarr.yaml
   - sonarr.yaml
+  - qbittorrent.yaml
+  - gluetun-vpn.sops.yaml
+
+# Gluetun VPN sidecar for Deployments labelled vpn=gluetun (qBittorrent only);
+# see components/gluetun/README.md.
+components:
+  - ../../components/gluetun
+
+configMapGenerator:
+  - name: gluetun-app
+    literals:
+      # 8080 for Traefik -> qBittorrent web UI, 9999 for kubelet probes on gluetun.
+      - FIREWALL_INPUT_PORTS=8080,9999

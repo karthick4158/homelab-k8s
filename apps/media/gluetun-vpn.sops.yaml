@@ -1,0 +1,34 @@
+# Surfshark WireGuard credentials for the gluetun sidecar in the qBittorrent
+# pod. The operator creates Secret media/gluetun-vpn from this.
+#
+# To fill in the real key, run:
+#   sops apps/media/gluetun-vpn.sops.yaml
+# It opens decrypted in your editor and re-encrypts when you save.
+# Replace REPLACE_ME with the private key, and WIREGUARD_ADDRESSES with the
+# address Surfshark shows in its WireGuard manual setup.
+apiVersion: isindir.github.com/v1alpha3
+kind: SopsSecret
+metadata:
+    name: gluetun-vpn
+    namespace: media
+spec:
+    secretTemplates:
+        - name: gluetun-vpn
+          stringData:
+            WIREGUARD_PRIVATE_KEY: ENC[AES256_GCM,data:/z1DB3w+fkRGXA==,iv:p3a2sd3TqVcQKCHZY2cyw1hbDaAoxIEJzkgJZFBg/A0=,tag:7M1V6lQM3PWX4tL92LDm5A==,type:str]
+            WIREGUARD_ADDRESSES: ENC[AES256_GCM,data:hI14awfjlQPNmeKj,iv:RmTO/t+xSHUE7kSr446ufIDf4x+hKKiXCEykQhglz+g=,tag:lpOwN/8RUFldj8MADUGVKQ==,type:str]
+sops:
+    age:
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBnem1nMTFtRDVURDdNYWQ3
+            alQzTDVKVXdUWHJXVEhOMm1jUGRkbEo3bEZVCkpKbFB5WExQV0UzdFFaR3NweEpF
+            Rys4d3pBV0JVMll3bWhKZmZMY1ZOYzQKLS0tIGhZcmVMRkdaVkVkbzJkam5jUzBQ
+            U1owU2xxcFBDOXZES05uVlh2Z09ML1kKtf4HWIxqgS5nvC4HqIcJJ+NLW/Qruyam
+            X4yFSXiau08DlJ7y3YOGuMmvFcmx3iienQY7fOZENeJA8DLlLUSgtw==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age1tmzhe2zxesm02xf06al2hgml6tg5srw5ljr8ag9zm223jdswkgvq945ua9
+    encrypted_regex: ^(data|stringData)$
+    lastmodified: "2026-10-31T02:39:09Z"
+    mac: ENC[AES256_GCM,data:SDHJbyVsuouuPwPg3Q1oE3OJixs3vzh2FeppboGDmOB/CuJDBuk717VzcidyUf/VRpWUWyLfKImUD4fk17vW66Z2XzlE9/Gnx9r8XjeR/wBwue9H17pqDbhAN43g1uLQS5CJmlgQFuSLgEcrQa977az0IS1jnAChtrq+O7ta1iY=,iv:R6D4m/70DvMnfzdI3hjcLEQ9HGSwud4GcELs9rTItXw=,tag:pgqSKS3Axqy27GR3ZW+jQA==,type:str]
+    version: 3.13.3
