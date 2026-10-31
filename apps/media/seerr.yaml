@@ -1,19 +1,11 @@
-# Seerr media request manager. Reached via traefik-gateway at
-# Host: seerr.homelab.lan on http://10.0.0.89/ (and https).
-# Runs alongside the existing Seerr VM (106), which is untouched; this
-# instance starts with a fresh config for now.
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: seerr
-  labels:
-    gateway-access: "true"  # allows routes here to attach to traefik-gateway
----
+# Seerr (media request manager), reached via traefik-gateway at
+# seerr.homelab.lan (http and https). Runs alongside the Seerr VM 106, which
+# is untouched; this instance starts with a fresh config.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: seerr-config
-  namespace: seerr
+  namespace: media
 spec:
   accessModes: [ReadWriteOnce]
   # No storageClassName: uses the default (local-path).
@@ -25,9 +17,9 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: seerr
-  namespace: seerr
+  namespace: media
   labels:
-    vpn: gluetun  # gets the gluetun sidecar (components/gluetun)
+    app: seerr
 spec:
   replicas: 1
   # RWO volume: old pod must release it before the new one starts.
@@ -95,7 +87,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: seerr
-  namespace: seerr
+  namespace: media
 spec:
   selector:
     app: seerr
@@ -108,7 +100,7 @@ apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
   name: seerr
-  namespace: seerr
+  namespace: media
 spec:
   parentRefs:
     - name: traefik-gateway

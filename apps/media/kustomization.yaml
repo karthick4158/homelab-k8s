@@ -12,6 +12,7 @@ resources:
   - radarr.yaml
   - sonarr.yaml
   - qbittorrent.yaml
+  - seerr.yaml
   - gluetun-vpn.sops.yaml
 
 # Gluetun VPN sidecar for Deployments labelled vpn=gluetun (qBittorrent only);
