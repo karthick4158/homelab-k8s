@@ -15,7 +15,7 @@ configMapGenerator:
       # Gluetun's health server; kubelet probes hit it on 9999.
       - HEALTH_SERVER_ADDRESS=0.0.0.0:9999
       # VPN country (Surfshark's naming); change it here for every VPN app.
-      - SERVER_COUNTRIES=Albania
+      - SERVER_COUNTRIES=France
 
 patches:
   - path: sidecar.yaml
