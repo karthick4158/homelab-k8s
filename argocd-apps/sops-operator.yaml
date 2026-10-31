@@ -1,0 +1,34 @@
+# sops-secrets-operator 0.21.2 (chart 0.28.1). Decrypts SopsSecret resources
+# in-cluster using the age private key in secret sops/sops-age-key-file, which
+# is created by hand and never stored in Git.
+# Note: the chart's compatibility table lists Kubernetes up to 1.36; we run 1.37.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: sops-secrets-operator
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://isindir.github.io/sops-secrets-operator/
+    chart: sops-secrets-operator
+    targetRevision: 0.28.1
+    helm:
+      valuesObject:
+        secretsAsFiles:
+          - mountPath: /etc/sops-age-key-file
+            name: sops-age-key-file
+            secretName: sops-age-key-file
+        extraEnv:
+          - name: SOPS_AGE_KEY_FILE
+            value: /etc/sops-age-key-file/key
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: sops
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
