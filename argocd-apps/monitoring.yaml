@@ -97,13 +97,6 @@ spec:
             limits:
               memory: 768Mi
           defaultDashboardsEnabled: true
-          # Pod logs from Loki (loki app), next to the Prometheus source.
-          additionalDataSources:
-            - name: Loki
-              type: loki
-              uid: loki
-              url: http://loki.monitoring.svc:3100
-              access: proxy
           sidecar:
             dashboards:
               enabled: true
