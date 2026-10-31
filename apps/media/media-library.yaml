@@ -1,0 +1,53 @@
+# The OpenMediaVault media library (NFS share plex_backup on 10.0.0.65),
+# mounted through csi-driver-nfs as a static PersistentVolume.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: media
+  labels:
+    gateway-access: "true"  # allows routes here to attach to traefik-gateway
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: media-library
+spec:
+  capacity:
+    storage: 1Ti  # label only; NFS does not enforce it
+  accessModes:
+    - ReadWriteMany
+  # Retain: deleting the claim never touches the data on OMV.
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - hard
+  csi:
+    driver: nfs.csi.k8s.io
+    volumeHandle: "10.0.0.65#/export/plex_backup##"
+    volumeAttributes:
+      server: 10.0.0.65
+      share: /export/plex_backup
+  # OMV only allows the NFS client 10.0.0.89 (k8s-worker-1), so the mount
+  # must happen there.
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - k8s-worker-1
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: media-library
+  namespace: media
+spec:
+  storageClassName: ""
+  volumeName: media-library
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Ti
