@@ -10,7 +10,7 @@ metadata:
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: media-library
+  name: omv-media-library
 spec:
   capacity:
     storage: 1Ti  # label only; NFS does not enforce it
@@ -19,14 +19,17 @@ spec:
   # Retain: deleting the claim never touches the data on OMV.
   persistentVolumeReclaimPolicy: Retain
   storageClassName: ""
+  # Pinning nfsvers=4.1 avoids the NFSv3 fallback, which needs rpc.statd.
   mountOptions:
+    - nfsvers=4.1
     - hard
   csi:
     driver: nfs.csi.k8s.io
-    volumeHandle: "10.0.0.65#/export/plex_backup##"
+    # OMV's NFSv4 root is /export (fsid=0), so the path is /plex_backup.
+    volumeHandle: "10.0.0.65#/plex_backup##"
     volumeAttributes:
       server: 10.0.0.65
-      share: /export/plex_backup
+      share: /plex_backup
   # OMV only allows the NFS client 10.0.0.89 (k8s-worker-1), so the mount
   # must happen there.
   nodeAffinity:
@@ -41,11 +44,11 @@ spec:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: media-library
+  name: library
   namespace: media
 spec:
   storageClassName: ""
-  volumeName: media-library
+  volumeName: omv-media-library
   accessModes:
     - ReadWriteMany
   resources:

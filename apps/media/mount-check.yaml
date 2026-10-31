@@ -3,7 +3,7 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: nfs-mount-check
+  name: nfs-mount-test
   namespace: media
 spec:
   securityContext:
@@ -26,5 +26,5 @@ spec:
   volumes:
     - name: media-library
       persistentVolumeClaim:
-        claimName: media-library
+        claimName: library
         readOnly: true
