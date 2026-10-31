@@ -36,7 +36,7 @@ spec:
     spec:
       containers:
         - name: jellyfin
-          image: lscr.io/linuxserver/jellyfin:12.0ubu2604-ls48
+          image: lscr.io/linuxserver/jellyfin:12.4ubu2604-ls57
           env:
             # OMV squashes root, so writes go through the library's group:
             # PGID 100 is OMV's default "users" group (K to confirm with

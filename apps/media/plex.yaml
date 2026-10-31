@@ -36,7 +36,7 @@ spec:
     spec:
       containers:
         - name: plex
-          image: lscr.io/linuxserver/plex:1.43.4.10903-e5521bd8c-ls325
+          image: lscr.io/linuxserver/plex:1.43.5.11079-b3b13e506-ls330
           env:
             # OMV squashes root, so writes go through the library's group:
             # PGID 100 is OMV's default "users" group (K to confirm with
