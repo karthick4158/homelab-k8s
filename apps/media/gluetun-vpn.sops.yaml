@@ -15,7 +15,7 @@ spec:
     secretTemplates:
         - name: gluetun-vpn
           stringData:
-            WIREGUARD_PRIVATE_KEY: ENC[AES256_GCM,data:/z1DB3w+fkRGXA==,iv:p3a2sd3TqVcQKCHZY2cyw1hbDaAoxIEJzkgJZFBg/A0=,tag:7M1V6lQM3PWX4tL92LDm5A==,type:str]
+            WIREGUARD_PRIVATE_KEY: ENC[AES256_GCM,data:HVy1namReIybA6MM84bQW8GxKv43247SEBKZwqtirfoecJZ6TijygEG1KKw=,iv:ejXI+psXn7Eq94JFB5Ti9X8FJ/Vq7Jl3UIE+6aeYo+E=,tag:nkhDCXzmJWXLWK+YLFlHRg==,type:str]
             WIREGUARD_ADDRESSES: ENC[AES256_GCM,data:hI14awfjlQPNmeKj,iv:RmTO/t+xSHUE7kSr446ufIDf4x+hKKiXCEykQhglz+g=,tag:lpOwN/8RUFldj8MADUGVKQ==,type:str]
 sops:
     age:
@@ -29,6 +29,6 @@ sops:
             -----END AGE ENCRYPTED FILE-----
           recipient: age1tmzhe2zxesm02xf06al2hgml6tg5srw5ljr8ag9zm223jdswkgvq945ua9
     encrypted_regex: ^(data|stringData)$
-    lastmodified: "2026-10-31T02:39:09Z"
-    mac: ENC[AES256_GCM,data:SDHJbyVsuouuPwPg3Q1oE3OJixs3vzh2FeppboGDmOB/CuJDBuk717VzcidyUf/VRpWUWyLfKImUD4fk17vW66Z2XzlE9/Gnx9r8XjeR/wBwue9H17pqDbhAN43g1uLQS5CJmlgQFuSLgEcrQa977az0IS1jnAChtrq+O7ta1iY=,iv:R6D4m/70DvMnfzdI3hjcLEQ9HGSwud4GcELs9rTItXw=,tag:pgqSKS3Axqy27GR3ZW+jQA==,type:str]
+    lastmodified: "2026-10-31T02:43:35Z"
+    mac: ENC[AES256_GCM,data:BcE0kOTQqLw8WA8Q6n8sIFL7ubBCQR6u3Ngd2JSp+NA01Gmm3nga3OmSFvkgiLlcdiUO79B5Jf8uEvEO7bC8QQXl9N2BqlpdH/Xa3kohg5KwgD/Er8XYwkaxjWaF9qVbJFNUWL4QBgE75KnfwuLRIeMDYfVEf+Ob2wLxN9xJ0Ko=,iv:9gpqMLRfXM+8xkHb9Q1QogtnrBwtP0sFqpVQFZacwic=,tag:vO78rxJJf834FXLXiOyhWg==,type:str]
     version: 3.13.3
