@@ -66,6 +66,15 @@ spec:
             httpGet:
               path: /api/v1/settings/public
               port: http
+          # Startup: grace period while booting (up to 5 min); liveness
+          # checks only begin once this passes.
+          startupProbe:
+            httpGet:
+              path: /api/v1/settings/public
+              port: http
+            periodSeconds: 10
+            failureThreshold: 30
+          # Liveness: restart the container if the app stops answering.
           livenessProbe:
             httpGet:
               path: /api/v1/settings/public
