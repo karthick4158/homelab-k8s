@@ -144,9 +144,9 @@ spec:
           resources:
             requests:
               cpu: 50m
-              memory: 64Mi
+              memory: 128Mi
             limits:
-              memory: 256Mi
+              memory: 512Mi
 
         - name: radarr
           image: lscr.io/linuxserver/radarr:6.4.4.10685-ls324
