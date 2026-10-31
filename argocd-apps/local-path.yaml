@@ -1,0 +1,28 @@
+# Rancher local-path-provisioner v0.0.37, set as the default StorageClass.
+# Volumes live under /opt/local-path-provisioner on the node the pod runs on.
+# cp-1 is tainted, so in practice that's k8s-worker-1, whose disk is covered
+# by VM 202's nightly backup. NFS-backed storage comes later.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: local-path-provisioner
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/rancher/local-path-provisioner.git
+    targetRevision: v0.0.37
+    path: deploy/chart/local-path-provisioner
+    helm:
+      valuesObject:
+        storageClass:
+          defaultClass: true
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: local-path-storage
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
