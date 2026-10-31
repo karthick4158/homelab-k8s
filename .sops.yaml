@@ -1,0 +1,7 @@
+# SOPS config: files named *.sops.yaml are encrypted to K's age key.
+# Only data/stringData values are encrypted, so the rest stays reviewable.
+# Private key: ~/Library/Application Support/sops/age/keys.txt (never in Git).
+creation_rules:
+  - path_regex: \.sops\.yaml$
+    encrypted_regex: '^(data|stringData)$'
+    age: age1tmzhe2zxesm02xf06al2hgml6tg5srw5ljr8ag9zm223jdswkgvq945ua9

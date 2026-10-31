@@ -50,8 +50,10 @@ kubeadm init --pod-network-cidr=10.244.0.0/16 \
 - sops-secrets-operator (`argocd-apps/sops-operator.yaml`) decrypts `SopsSecret` resources in-cluster.
 - age private key: on K's Mac at `~/Library/Application Support/sops/age/keys.txt`, backup in K's
   password manager. Cluster copy is secret `sops/sops-age-key-file` (key `key`), created by hand.
-- To add a secret: write a `SopsSecret` (`apiVersion: isindir.github.com/v1alpha3`) with `stringData`,
-  run `sops -e -i file.yaml`, commit.
+- To add a secret: write a `SopsSecret` (`apiVersion: isindir.github.com/v1alpha3`) with `stringData`
+  in a file named `*.sops.yaml`, run `sops -e -i file.sops.yaml`, commit. Rules are in `.sops.yaml`:
+  only `data`/`stringData` values are encrypted, to K's age public key. Example:
+  `apps/whoami/sops-test.sops.yaml`.
 - Never commit an unencrypted secret.
 
 ## Open items
