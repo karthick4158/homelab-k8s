@@ -1,0 +1,34 @@
+# Surfshark WireGuard credentials for the gluetun sidecar in the Seerr pod.
+# The operator creates Secret seerr/gluetun-vpn from this.
+#
+# To fill in the real key, run:
+#   sops apps/seerr/gluetun-vpn.sops.yaml
+# It opens decrypted in your editor and re-encrypts when you save.
+# Replace REPLACE_ME with the private key, and WIREGUARD_ADDRESSES with the
+# address Surfshark shows in its WireGuard manual setup.
+apiVersion: isindir.github.com/v1alpha3
+kind: SopsSecret
+metadata:
+    name: gluetun-vpn
+    namespace: seerr
+spec:
+    secretTemplates:
+        - name: gluetun-vpn
+          stringData:
+            WIREGUARD_PRIVATE_KEY: ENC[AES256_GCM,data:cbDUavgDl18Z4A==,iv:ipB39t7L5ucENfbnFasE09CJ8fV3YAMLlfOxnJ7zIag=,tag:Myl34UE1AoCSzolv5ezYoA==,type:str]
+            WIREGUARD_ADDRESSES: ENC[AES256_GCM,data:7BetvSloxN9Jugv1,iv:HZVcT9WMZpTdb/KzReYV7bjb6tEcMs25HimFf0atEzQ=,tag:oi98KPdMiUMiVJVS00rDKQ==,type:str]
+sops:
+    age:
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSB0dHY4aWpldGlOU3JRUTV0
+            SWZpb3RJdkZQN2lSU1NqL3JXL3BVdXI3dVhjCmVQa1lYVW9IU1Q2REpXV04vVUE3
+            aW43UjQ4OGZudW11YjB6VEVkeTUwQ2MKLS0tIEsxNUVpeU9IaElTaXY2bTFhVFZz
+            cjhnUXVGbGp6THNJSkp5L09uQjlmS1EKpqjG8m2EZYte5lzQdqO4pyJeeaSi7mG3
+            TFQ2EGiYwCzTvAG3kTpztGdoknxTgMiSE1lb1RsGcuM5yy37GHj4Cg==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age1tmzhe2zxesm02xf06al2hgml6tg5srw5ljr8ag9zm223jdswkgvq945ua9
+    encrypted_regex: ^(data|stringData)$
+    lastmodified: "2026-10-31T01:52:03Z"
+    mac: ENC[AES256_GCM,data:7polWJO48jq8vBebRVdExAC/LNK4ogSGK1YzmpDeDbT8TnQrEEbdmG9kbTCFx3e2MyTPdFJPFYiDIuBQnlKaffA0+G2NXFIoGUzmJ0+27WaHHWPQep52F6GZXvvpiMwOturVrBfy4sxsOxkFxjWAHTXAgQIr2X0qaRUp1YeQanA=,iv:KixNh4fhl/mNnBCh1YI3xDRpaaicS/8+qvwfc3j54Bs=,tag:lcqQrzfvmYalaLLOB+4SnQ==,type:str]
+    version: 3.13.3
