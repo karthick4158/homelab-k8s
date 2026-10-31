@@ -26,6 +26,8 @@ kind: Deployment
 metadata:
   name: seerr
   namespace: seerr
+  labels:
+    vpn: gluetun  # gets the gluetun sidecar (components/gluetun)
 spec:
   replicas: 1
   # RWO volume: old pod must release it before the new one starts.
@@ -42,63 +44,6 @@ spec:
       securityContext:
         fsGroup: 1000
         fsGroupChangePolicy: OnRootMismatch
-      # VPN: all containers in a pod share one network namespace (like
-      # docker's network_mode: service:gluetun), so Seerr's traffic goes
-      # through gluetun's WireGuard tunnel to Surfshark.
-      initContainers:
-        # Native sidecar (restartPolicy: Always): starts before Seerr and
-        # keeps running. Seerr only starts once gluetun's startupProbe passes,
-        # i.e. once the VPN is up and healthy. If the VPN drops later,
-        # gluetun's kill switch (firewall) blocks Seerr's internet traffic
-        # instead of letting it leak out the home connection.
-        - name: gluetun
-          image: qmcgaw/gluetun:v3.41.3
-          restartPolicy: Always
-          securityContext:
-            capabilities:
-              add: [NET_ADMIN]
-          envFrom:
-            - secretRef:
-                name: gluetun-vpn  # WIREGUARD_PRIVATE_KEY, WIREGUARD_ADDRESSES
-          env:
-            - name: VPN_SERVICE_PROVIDER
-              value: surfshark
-            - name: VPN_TYPE
-              value: wireguard
-            - name: WIREGUARD_IMPLEMENTATION
-              value: kernelspace
-            - name: SERVER_COUNTRIES
-              value: "Netherlands"
-            # Inbound ports allowed through the kill switch: 5055 for
-            # Traefik -> Seerr, 9999 for kubelet probes on gluetun's health
-            # server.
-            - name: FIREWALL_INPUT_PORTS
-              value: "5055,9999"
-            # Subnets that bypass the tunnel: pod CIDR, service CIDR and the
-            # home LAN, so Seerr can still reach cluster DNS and Jellyfin/Plex
-            # on the LAN.
-            - name: FIREWALL_OUTBOUND_SUBNETS
-              value: "10.244.0.0/16,10.96.0.0/12,10.0.0.0/24"
-            - name: HEALTH_SERVER_ADDRESS
-              value: "0.0.0.0:9999"
-          startupProbe:
-            httpGet:
-              path: /
-              port: 9999
-            periodSeconds: 5
-            failureThreshold: 60  # up to 5 minutes to connect
-          livenessProbe:
-            httpGet:
-              path: /
-              port: 9999
-            periodSeconds: 30
-            failureThreshold: 5
-          resources:
-            requests:
-              cpu: 50m
-              memory: 64Mi
-            limits:
-              memory: 256Mi
       containers:
         - name: seerr
           image: ghcr.io/seerr-team/seerr:v3.5.1

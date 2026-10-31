@@ -1,0 +1,44 @@
+# Adds gluetun as a native sidecar to every Deployment labelled vpn=gluetun.
+# All containers in a pod share one network namespace, so the app's traffic
+# goes through gluetun's tunnel; the kill switch blocks it if the VPN drops.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: unused  # the patch target comes from the labelSelector
+spec:
+  template:
+    spec:
+      initContainers:
+        # restartPolicy: Always = native sidecar: starts first, keeps running,
+        # and the app only starts once the startupProbe passes (VPN up).
+        - name: gluetun
+          image: qmcgaw/gluetun:v3.41.3
+          restartPolicy: Always
+          securityContext:
+            capabilities:
+              add: [NET_ADMIN]
+          envFrom:
+            - configMapRef:
+                name: gluetun-shared  # this component's settings
+            - configMapRef:
+                name: gluetun-app     # per app: FIREWALL_INPUT_PORTS
+            - secretRef:
+                name: gluetun-vpn     # per namespace: WireGuard key/address
+          startupProbe:
+            httpGet:
+              path: /
+              port: 9999
+            periodSeconds: 5
+            failureThreshold: 60  # up to 5 minutes to connect
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 9999
+            periodSeconds: 30
+            failureThreshold: 5
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 256Mi

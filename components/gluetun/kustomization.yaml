@@ -1,0 +1,24 @@
+# Gluetun VPN sidecar (Surfshark WireGuard) shared by every app behind the VPN.
+# See README.md for how to opt an app in.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+configMapGenerator:
+  - name: gluetun-shared
+    literals:
+      - VPN_SERVICE_PROVIDER=surfshark
+      - VPN_TYPE=wireguard
+      - WIREGUARD_IMPLEMENTATION=kernelspace
+      # Subnets that bypass the tunnel: pod CIDR, service CIDR and home LAN,
+      # so apps still reach cluster DNS and LAN services.
+      - FIREWALL_OUTBOUND_SUBNETS=10.244.0.0/16,10.96.0.0/12,10.0.0.0/24
+      # Gluetun's health server; kubelet probes hit it on 9999.
+      - HEALTH_SERVER_ADDRESS=0.0.0.0:9999
+      # VPN country (Surfshark's naming); change it here for every VPN app.
+      - SERVER_COUNTRIES=Netherlands
+
+patches:
+  - path: sidecar.yaml
+    target:
+      kind: Deployment
+      labelSelector: "vpn=gluetun"
