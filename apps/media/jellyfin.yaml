@@ -1,0 +1,110 @@
+# Jellyfin (media server), reached via traefik-gateway at jellyfin.homelab.lan
+# (http and https). Runs alongside the media VM 106, which is untouched; this
+# instance starts with a fresh config. The OMV library is mounted read-only
+# at /data.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jellyfin-config
+  namespace: media
+spec:
+  accessModes: [ReadWriteOnce]
+  # No storageClassName: uses the default (local-path).
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jellyfin
+  namespace: media
+  labels:
+    app: jellyfin
+spec:
+  replicas: 1
+  # RWO volume: old pod must release it before the new one starts.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: jellyfin
+  template:
+    metadata:
+      labels:
+        app: jellyfin
+    spec:
+      containers:
+        - name: jellyfin
+          image: lscr.io/linuxserver/jellyfin:12.0ubu2604-ls48
+          env:
+            # OMV squashes root, so writes go through the library's group:
+            # PGID 100 is OMV's default "users" group (K to confirm with
+            # `stat` on OMV). UMASK 002 keeps new files group-writable.
+            - name: PUID
+              value: "1000"
+            - name: PGID
+              value: "100"
+            - name: UMASK
+              value: "002"
+            # URL Jellyfin advertises to clients.
+            - name: JELLYFIN_PublishedServerUrl
+              value: https://jellyfin.homelab.lan
+          ports:
+            - name: http
+              containerPort: 8096
+          volumeMounts:
+            - name: config
+              mountPath: /config
+            - name: library
+              mountPath: /data
+              readOnly: true
+          readinessProbe:
+            tcpSocket:
+              port: http
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 2Gi
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: jellyfin-config
+        - name: library
+          persistentVolumeClaim:
+            claimName: library  # media-library.yaml
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jellyfin
+  namespace: media
+spec:
+  selector:
+    app: jellyfin
+  ports:
+    - name: http
+      port: 8096
+      targetPort: http
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: jellyfin
+  namespace: media
+spec:
+  parentRefs:
+    - name: traefik-gateway
+      namespace: traefik
+      sectionName: web
+    - name: traefik-gateway
+      namespace: traefik
+      sectionName: websecure
+  hostnames:
+    - jellyfin.homelab.lan
+  rules:
+    - backendRefs:
+        - name: jellyfin
+          port: 8096

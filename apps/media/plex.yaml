@@ -1,0 +1,110 @@
+# Plex (media server), reached via traefik-gateway at plex.homelab.lan
+# (http and https). Runs alongside the media VM 106, which is untouched; this
+# instance starts with a fresh config. The OMV library is mounted read-only
+# at /data.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: plex-config
+  namespace: media
+spec:
+  accessModes: [ReadWriteOnce]
+  # No storageClassName: uses the default (local-path).
+  resources:
+    requests:
+      storage: 20Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: plex
+  namespace: media
+  labels:
+    app: plex
+spec:
+  replicas: 1
+  # RWO volume: old pod must release it before the new one starts.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: plex
+  template:
+    metadata:
+      labels:
+        app: plex
+    spec:
+      containers:
+        - name: plex
+          image: lscr.io/linuxserver/plex:1.43.4.10903-e5521bd8c-ls325
+          env:
+            # OMV squashes root, so writes go through the library's group:
+            # PGID 100 is OMV's default "users" group (K to confirm with
+            # `stat` on OMV). UMASK 002 keeps new files group-writable.
+            - name: PUID
+              value: "1000"
+            - name: PGID
+              value: "100"
+            - name: UMASK
+              value: "002"
+            # Keep the Plex version pinned by the image tag.
+            - name: VERSION
+              value: docker
+          ports:
+            - name: http
+              containerPort: 32400
+          volumeMounts:
+            - name: config
+              mountPath: /config
+            - name: library
+              mountPath: /data
+              readOnly: true
+          readinessProbe:
+            tcpSocket:
+              port: http
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 2Gi
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: plex-config
+        - name: library
+          persistentVolumeClaim:
+            claimName: library  # media-library.yaml
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: plex
+  namespace: media
+spec:
+  selector:
+    app: plex
+  ports:
+    - name: http
+      port: 32400
+      targetPort: http
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: plex
+  namespace: media
+spec:
+  parentRefs:
+    - name: traefik-gateway
+      namespace: traefik
+      sectionName: web
+    - name: traefik-gateway
+      namespace: traefik
+      sectionName: websecure
+  hostnames:
+    - plex.homelab.lan
+  rules:
+    - backendRefs:
+        - name: plex
+          port: 32400
