@@ -69,6 +69,16 @@ kubeadm init --pod-network-cidr=10.244.0.0/16 \
   `apps/media/gluetun-vpn.sops.yaml`.
 - Never commit an unencrypted secret.
 
+## Updating images by hand
+
+- Versions live in the repo: container image tags in the `image:` lines under `apps/` and
+  `components/`, Helm chart versions in `targetRevision` in `argocd-apps/*.yaml`.
+- Run `scripts/check-updates.sh` from the Mac. It is read-only (asks public registries only, never
+  the cluster) and prints pinned vs newest version per image and chart; `?` means the lookup failed.
+- Read the release notes, then edit the tag/`targetRevision`. One app per commit, e.g.
+  `git commit -m "Bump radarr to 6.4.5.x-ls322"`, then `git push`; Argo CD syncs it.
+- Roll back: `git revert <commit>` and push.
+
 ## Open items
 
 - MetalLB IP range (outside router DHCP pool) – to decide.
