@@ -1,0 +1,10 @@
+# The argocd namespace from the manual install, only to add the label.
+# Argo CD must never prune or delete it.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: argocd
+  labels:
+    gateway-access: "true"  # allows routes here to attach to traefik-gateway
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false

@@ -45,6 +45,19 @@ kubeadm init --pod-network-cidr=10.244.0.0/16 \
 - Argo CD v3.5.6:
   `kubectl apply -n argocd --server-side --force-conflicts -f https://raw.githubusercontent.com/argoproj/argo-cd/v3.5.6/manifests/install.yaml`
 
+## Reaching Argo CD
+
+- UI: https://argocd.homelab.lan (Traefik, `*.homelab.lan` wildcard cert), user `admin`.
+  Initial password: `kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d`.
+- CLI through Traefik needs gRPC-web: `argocd login argocd.homelab.lan --grpc-web`.
+- The `argocd` app (`argocd-apps/argocd.yaml` -> `infrastructure/argocd/`) adds the HTTPRoute, the
+  `gateway-access: "true"` label on the `argocd` namespace, and `server.insecure: "true"` in
+  `argocd-cmd-params-cm` (Traefik terminates TLS). The install itself is still the manual one above;
+  the namespace and ConfigMap are marked `Prune=false,Delete=false`.
+- argocd-server reads `argocd-cmd-params-cm` only at startup. After changing it:
+  `kubectl -n argocd rollout restart deployment argocd-server`.
+- Fallback without Traefik: `kubectl -n argocd port-forward svc/argocd-server 8080:80`, then http://localhost:8080.
+
 ## Secrets (SOPS + age)
 
 - sops-secrets-operator (`argocd-apps/sops-operator.yaml`) decrypts `SopsSecret` resources in-cluster.

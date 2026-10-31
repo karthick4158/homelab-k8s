@@ -1,0 +1,22 @@
+# Traefik route to the Argo CD UI at argocd.homelab.lan. Argo CD itself is
+# still installed by hand (docs/cluster-setup.md); this app only owns the
+# objects in infrastructure/argocd, and the shared ones there are marked
+# Prune=false,Delete=false so removing this app never touches the install.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argocd
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:karthick4158/homelab-k8s.git
+    targetRevision: main
+    path: infrastructure/argocd
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
