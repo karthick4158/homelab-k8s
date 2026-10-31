@@ -31,20 +31,31 @@ spec:
         app: downloads
     spec:
       initContainers:
-        # First start only: seed Transmission's settings.json from the image
-        # defaults with the download dirs moved from /downloads to
-        # /data/downloads (the library). Skipped once the file exists, so
-        # changes made in the web UI are kept. Needs no network (kustomize
-        # puts it after the gluetun sidecar, so it starts once the VPN is up).
+        # Every start: Git owns Transmission's download folders. If
+        # settings.json is missing it is seeded from the image defaults;
+        # either way only download-dir, incomplete-dir and
+        # incomplete-dir-enabled are rewritten, every other key (password,
+        # limits, peers, web UI changes) is kept. sed edits the values in
+        # place on Transmission's one-key-per-line format (the image has no
+        # jq); `cat >` keeps the existing file's owner. Folders are left to
+        # Transmission to create. Needs no network (kustomize puts it after
+        # the gluetun sidecar, so it starts once the VPN is up).
         - name: transmission-seed
           image: lscr.io/linuxserver/transmission:4.1.4-r0-ls367
           command:
             - sh
             - -c
-            - >-
-              [ -f /config/settings.json ] ||
-              sed 's#"/downloads/#"/data/downloads/#' /defaults/settings.json
-              > /config/settings.json
+            - |
+              set -e
+              src=/config/settings.json
+              [ -f "$src" ] || src=/defaults/settings.json
+              sed \
+                -e 's#^\([[:space:]]*"download-dir"[[:space:]]*:[[:space:]]*\)"[^"]*"#\1"/data/data/downloads/transmission/completed"#' \
+                -e 's#^\([[:space:]]*"incomplete-dir"[[:space:]]*:[[:space:]]*\)"[^"]*"#\1"/data/data/downloads/transmission/incomplete"#' \
+                -e 's#^\([[:space:]]*"incomplete-dir-enabled"[[:space:]]*:[[:space:]]*\)[a-z]*#\1true#' \
+                "$src" > /config/settings.json.new
+              cat /config/settings.json.new > /config/settings.json
+              rm /config/settings.json.new
           volumeMounts:
             - name: transmission-config
               mountPath: /config

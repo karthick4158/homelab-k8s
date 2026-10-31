@@ -122,11 +122,15 @@ kubeadm init --pod-network-cidr=10.244.0.0/16 \
 - https://transmission.homelab.lan (`apps/media/transmission.yaml`), LinuxServer image, web UI on
   9091, config on a 500Mi local-path PVC, library mounted at `/data` like qBittorrent. Needs a DNS
   record `transmission.homelab.lan -> 10.0.0.89` in Pi-hole and AdGuard.
-- Downloads go to `/data/downloads/complete` (in progress: `/data/downloads/incomplete`). The repo
-  defines no download folder for qBittorrent, so this path is new: check it fits the library and
-  change it in the web UI (Edit preferences > Downloading) if not. The `transmission-seed` init
-  container writes these paths into `settings.json` only on first start; afterwards the file is
-  Transmission's own.
+- Downloads go to `/data/data/downloads/transmission/completed` (in progress:
+  `/data/data/downloads/transmission/incomplete`), mirroring qBittorrent's
+  `/data/data/downloads/qbittorrent/{completed,incomplete}`. These two paths (and
+  `incomplete-dir-enabled: true`) are enforced from Git on every pod start: the
+  `transmission-seed` init container seeds `settings.json` from the image defaults if it is
+  missing, then rewrites only those three keys. Changing the folders in the web UI lasts only until
+  the next restart; change them in `apps/media/downloads.yaml` instead. All other settings
+  (password, speed limits, peers) are saved normally by Transmission and kept. Transmission creates
+  the folders itself.
 - Peer port 51413 (`PEERPORT`); qBittorrent keeps its image default 6881, so they do not clash in
   the shared network namespace. Neither port is forwarded through the VPN (outbound peers only).
 - No password by default: anyone on the LAN who reaches the hostname can use it. To add one later,
