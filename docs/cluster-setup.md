@@ -53,7 +53,7 @@ kubeadm init --pod-network-cidr=10.244.0.0/16 \
 - To add a secret: write a `SopsSecret` (`apiVersion: isindir.github.com/v1alpha3`) with `stringData`
   in a file named `*.sops.yaml`, run `sops -e -i file.sops.yaml`, commit. Rules are in `.sops.yaml`:
   only `data`/`stringData` values are encrypted, to K's age public key. Example:
-  `apps/whoami/sops-test.sops.yaml`.
+  `apps/media/gluetun-vpn.sops.yaml`.
 - Never commit an unencrypted secret.
 
 ## Open items
