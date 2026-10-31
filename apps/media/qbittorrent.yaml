@@ -1,8 +1,7 @@
 # qBittorrent, reached via traefik-gateway at qbit.homelab.lan (http and
-# https). All its traffic goes through the gluetun VPN sidecar
-# (components/gluetun), with a kill switch. Runs alongside the media VM 106,
-# which is untouched; this instance starts with a fresh config. The OMV
-# library is mounted read-write at /data.
+# https). Its container runs in the shared VPN pod (downloads.yaml); this file
+# holds its config volume, Service and route. Runs alongside the media VM 106,
+# which is untouched; this instance starts with a fresh config.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -15,84 +14,6 @@ spec:
     requests:
       storage: 1Gi
 ---
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: qbittorrent
-  namespace: media
-  labels:
-    app: qbittorrent
-    vpn: gluetun  # gets the gluetun sidecar (components/gluetun)
-spec:
-  replicas: 1
-  # RWO volume: old pod must release it before the new one starts.
-  strategy:
-    type: Recreate
-  selector:
-    matchLabels:
-      app: qbittorrent
-  template:
-    metadata:
-      labels:
-        app: qbittorrent
-    spec:
-      containers:
-        - name: qbittorrent
-          image: lscr.io/linuxserver/qbittorrent:5.2.3_v2.0.14-ls475
-          env:
-            # OMV squashes root, so writes go through the library's group:
-            # PGID 100 is OMV's default "users" group (K to confirm with
-            # `stat` on OMV). UMASK 002 keeps new files group-writable.
-            - name: PUID
-              value: "1000"
-            - name: PGID
-              value: "100"
-            - name: UMASK
-              value: "002"
-            - name: WEBUI_PORT
-              value: "8080"
-          ports:
-            - name: http
-              containerPort: 8080
-          volumeMounts:
-            - name: config
-              mountPath: /config
-            - name: library
-              mountPath: /data
-          readinessProbe:
-            tcpSocket:
-              port: http
-          # Startup: grace period while booting (up to 5 min); liveness
-          # checks only begin once this passes.
-          startupProbe:
-            httpGet:
-              path: /
-              port: http
-            periodSeconds: 10
-            failureThreshold: 30
-          # Liveness: restart the container if the app stops answering
-          # (3 misses, 30s apart = ~90s).
-          livenessProbe:
-            httpGet:
-              path: /
-              port: http
-            periodSeconds: 30
-            timeoutSeconds: 5
-            failureThreshold: 3
-          resources:
-            requests:
-              cpu: 100m
-              memory: 256Mi
-            limits:
-              memory: 1Gi
-      volumes:
-        - name: config
-          persistentVolumeClaim:
-            claimName: qbittorrent-config
-        - name: library
-          persistentVolumeClaim:
-            claimName: library  # media-library.yaml
----
 apiVersion: v1
 kind: Service
 metadata:
@@ -100,11 +21,11 @@ metadata:
   namespace: media
 spec:
   selector:
-    app: qbittorrent
+    app: downloads  # the shared pod in downloads.yaml
   ports:
     - name: http
       port: 8080
-      targetPort: http
+      targetPort: qbittorrent  # this app's container port
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute

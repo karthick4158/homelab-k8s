@@ -9,13 +9,16 @@ resources:
   - media-library.yaml
   - jellyfin.yaml
   - plex.yaml
+  # One pod (shared VPN) for qBittorrent, Radarr, Sonarr and Seerr; the
+  # per-app files hold their volumes, Services and routes.
+  - downloads.yaml
+  - qbittorrent.yaml
   - radarr.yaml
   - sonarr.yaml
-  - qbittorrent.yaml
   - seerr.yaml
   - gluetun-vpn.sops.yaml
 
-# Gluetun VPN sidecar for Deployments labelled vpn=gluetun (qBittorrent only);
+# Gluetun VPN sidecar for Deployments labelled vpn=gluetun (only downloads.yaml);
 # see components/gluetun/README.md.
 components:
   - ../../components/gluetun
@@ -23,5 +26,6 @@ components:
 configMapGenerator:
   - name: gluetun-app
     literals:
-      # 8080 for Traefik -> qBittorrent web UI, 9999 for kubelet probes on gluetun.
-      - FIREWALL_INPUT_PORTS=8080,9999
+      # Web UIs reached through Traefik: qBittorrent 8080, Radarr 7878,
+      # Sonarr 8989, Seerr 5055. 9999 for kubelet probes on gluetun.
+      - FIREWALL_INPUT_PORTS=8080,7878,8989,5055,9999

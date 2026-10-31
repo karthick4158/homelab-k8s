@@ -1,6 +1,7 @@
 # Seerr (media request manager), reached via traefik-gateway at
-# seerr.homelab.lan (http and https). Runs alongside the Seerr VM 106, which
-# is untouched; this instance starts with a fresh config.
+# seerr.homelab.lan (http and https). Its container runs in the shared VPN pod
+# (downloads.yaml); this file holds its config volume, Service and route. Runs
+# alongside the Seerr VM 106, which is untouched.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -13,76 +14,6 @@ spec:
     requests:
       storage: 2Gi
 ---
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: seerr
-  namespace: media
-  labels:
-    app: seerr
-spec:
-  replicas: 1
-  # RWO volume: old pod must release it before the new one starts.
-  strategy:
-    type: Recreate
-  selector:
-    matchLabels:
-      app: seerr
-  template:
-    metadata:
-      labels:
-        app: seerr
-    spec:
-      securityContext:
-        fsGroup: 1000
-        fsGroupChangePolicy: OnRootMismatch
-      containers:
-        - name: seerr
-          image: ghcr.io/seerr-team/seerr:v3.5.1
-          ports:
-            - name: http
-              containerPort: 5055
-          volumeMounts:
-            - name: config
-              mountPath: /app/config
-          securityContext:
-            runAsNonRoot: true
-            runAsUser: 1000
-            runAsGroup: 1000
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop: [ALL]
-            seccompProfile:
-              type: RuntimeDefault
-          readinessProbe:
-            httpGet:
-              path: /api/v1/settings/public
-              port: http
-          # Startup: grace period while booting (up to 5 min); liveness
-          # checks only begin once this passes.
-          startupProbe:
-            httpGet:
-              path: /api/v1/settings/public
-              port: http
-            periodSeconds: 10
-            failureThreshold: 30
-          # Liveness: restart the container if the app stops answering.
-          livenessProbe:
-            httpGet:
-              path: /api/v1/settings/public
-              port: http
-            initialDelaySeconds: 30
-          resources:
-            requests:
-              cpu: 100m
-              memory: 256Mi
-            limits:
-              memory: 1Gi
-      volumes:
-        - name: config
-          persistentVolumeClaim:
-            claimName: seerr-config
----
 apiVersion: v1
 kind: Service
 metadata:
@@ -90,11 +21,11 @@ metadata:
   namespace: media
 spec:
   selector:
-    app: seerr
+    app: downloads  # the shared pod in downloads.yaml
   ports:
     - name: http
       port: 5055
-      targetPort: http
+      targetPort: seerr  # this app's container port
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute

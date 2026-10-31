@@ -1,7 +1,7 @@
 # Sonarr (TV manager), reached via traefik-gateway at sonarr.homelab.lan
-# (http and https). Runs alongside the media VM 106, which is untouched; this
-# instance starts with a fresh config. The OMV library is mounted read-write
-# at /data.
+# (http and https). Its container runs in the shared VPN pod (downloads.yaml);
+# this file holds its config volume, Service and route. Runs alongside the
+# media VM 106, which is untouched; this instance starts with a fresh config.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -14,81 +14,6 @@ spec:
     requests:
       storage: 2Gi
 ---
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: sonarr
-  namespace: media
-  labels:
-    app: sonarr
-spec:
-  replicas: 1
-  # RWO volume: old pod must release it before the new one starts.
-  strategy:
-    type: Recreate
-  selector:
-    matchLabels:
-      app: sonarr
-  template:
-    metadata:
-      labels:
-        app: sonarr
-    spec:
-      containers:
-        - name: sonarr
-          image: lscr.io/linuxserver/sonarr:4.0.20.3014-ls325
-          env:
-            # OMV squashes root, so writes go through the library's group:
-            # PGID 100 is OMV's default "users" group (K to confirm with
-            # `stat` on OMV). UMASK 002 keeps new files group-writable.
-            - name: PUID
-              value: "1000"
-            - name: PGID
-              value: "100"
-            - name: UMASK
-              value: "002"
-          ports:
-            - name: http
-              containerPort: 8989
-          volumeMounts:
-            - name: config
-              mountPath: /config
-            - name: library
-              mountPath: /data
-          readinessProbe:
-            tcpSocket:
-              port: http
-          # Startup: grace period while booting (up to 5 min); liveness
-          # checks only begin once this passes.
-          startupProbe:
-            httpGet:
-              path: /ping
-              port: http
-            periodSeconds: 10
-            failureThreshold: 30
-          # Liveness: restart the container if the app stops answering
-          # (3 misses, 30s apart = ~90s).
-          livenessProbe:
-            httpGet:
-              path: /ping
-              port: http
-            periodSeconds: 30
-            timeoutSeconds: 5
-            failureThreshold: 3
-          resources:
-            requests:
-              cpu: 100m
-              memory: 256Mi
-            limits:
-              memory: 1Gi
-      volumes:
-        - name: config
-          persistentVolumeClaim:
-            claimName: sonarr-config
-        - name: library
-          persistentVolumeClaim:
-            claimName: library  # media-library.yaml
----
 apiVersion: v1
 kind: Service
 metadata:
@@ -96,11 +21,11 @@ metadata:
   namespace: media
 spec:
   selector:
-    app: sonarr
+    app: downloads  # the shared pod in downloads.yaml
   ports:
     - name: http
       port: 8989
-      targetPort: http
+      targetPort: sonarr  # this app's container port
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute

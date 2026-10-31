@@ -1,0 +1,217 @@
+# qBittorrent, Radarr, Sonarr and Seerr in one pod, so they all share the
+# gluetun VPN sidecar (components/gluetun): one VPN connection, one kill
+# switch. Each app keeps its own config volume, Service and hostname (see
+# qbittorrent.yaml, radarr.yaml, sonarr.yaml, seerr.yaml); the Services pick
+# their app by container port name. Inside the pod the apps reach each other
+# on localhost (e.g. Radarr -> qBittorrent at localhost:8080).
+#
+# No pod-level securityContext on purpose: an fsGroup here would also apply to
+# the NFS library volume and could chown K's whole library. Seerr's user is
+# set on its container instead.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: downloads
+  namespace: media
+  labels:
+    app: downloads
+    vpn: gluetun  # gets the gluetun sidecar (components/gluetun)
+spec:
+  replicas: 1
+  # RWO volumes: old pod must release them before the new one starts.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: downloads
+  template:
+    metadata:
+      labels:
+        app: downloads
+    spec:
+      containers:
+        - name: qbittorrent
+          image: lscr.io/linuxserver/qbittorrent:5.2.3_v2.0.14-ls475
+          env:
+            # OMV squashes root, so writes go through the library's group:
+            # PGID 100 is OMV's default "users" group (K to confirm with
+            # `stat` on OMV). UMASK 002 keeps new files group-writable.
+            - name: PUID
+              value: "1000"
+            - name: PGID
+              value: "100"
+            - name: UMASK
+              value: "002"
+            - name: WEBUI_PORT
+              value: "8080"
+          ports:
+            - name: qbittorrent
+              containerPort: 8080
+          volumeMounts:
+            - name: qbittorrent-config
+              mountPath: /config
+            - name: library
+              mountPath: /data
+          readinessProbe:
+            tcpSocket:
+              port: qbittorrent
+          # Startup: grace period while booting (up to 5 min); liveness
+          # checks only begin once this passes.
+          startupProbe:
+            httpGet:
+              path: /
+              port: qbittorrent
+            periodSeconds: 10
+            failureThreshold: 30
+          # Liveness: restart the container if the app stops answering
+          # (3 misses, 30s apart = ~90s).
+          livenessProbe:
+            httpGet:
+              path: /
+              port: qbittorrent
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 1Gi
+
+        - name: radarr
+          image: lscr.io/linuxserver/radarr:6.4.4.10685-ls321
+          env:
+            # Same user/group as qBittorrent (see above).
+            - name: PUID
+              value: "1000"
+            - name: PGID
+              value: "100"
+            - name: UMASK
+              value: "002"
+          ports:
+            - name: radarr
+              containerPort: 7878
+          volumeMounts:
+            - name: radarr-config
+              mountPath: /config
+            - name: library
+              mountPath: /data
+          readinessProbe:
+            tcpSocket:
+              port: radarr
+          startupProbe:
+            httpGet:
+              path: /ping
+              port: radarr
+            periodSeconds: 10
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /ping
+              port: radarr
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 1Gi
+
+        - name: sonarr
+          image: lscr.io/linuxserver/sonarr:4.0.20.3014-ls325
+          env:
+            # Same user/group as qBittorrent (see above).
+            - name: PUID
+              value: "1000"
+            - name: PGID
+              value: "100"
+            - name: UMASK
+              value: "002"
+          ports:
+            - name: sonarr
+              containerPort: 8989
+          volumeMounts:
+            - name: sonarr-config
+              mountPath: /config
+            - name: library
+              mountPath: /data
+          readinessProbe:
+            tcpSocket:
+              port: sonarr
+          startupProbe:
+            httpGet:
+              path: /ping
+              port: sonarr
+            periodSeconds: 10
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /ping
+              port: sonarr
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 1Gi
+
+        - name: seerr
+          image: ghcr.io/seerr-team/seerr:v3.5.1
+          ports:
+            - name: seerr
+              containerPort: 5055
+          volumeMounts:
+            - name: seerr-config
+              mountPath: /app/config
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+            seccompProfile:
+              type: RuntimeDefault
+          readinessProbe:
+            httpGet:
+              path: /api/v1/settings/public
+              port: seerr
+          startupProbe:
+            httpGet:
+              path: /api/v1/settings/public
+              port: seerr
+            periodSeconds: 10
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /api/v1/settings/public
+              port: seerr
+            initialDelaySeconds: 30
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 1Gi
+      volumes:
+        - name: qbittorrent-config
+          persistentVolumeClaim:
+            claimName: qbittorrent-config  # qbittorrent.yaml
+        - name: radarr-config
+          persistentVolumeClaim:
+            claimName: radarr-config       # radarr.yaml
+        - name: sonarr-config
+          persistentVolumeClaim:
+            claimName: sonarr-config       # sonarr.yaml
+        - name: seerr-config
+          persistentVolumeClaim:
+            claimName: seerr-config        # seerr.yaml
+        - name: library
+          persistentVolumeClaim:
+            claimName: library  # media-library.yaml
