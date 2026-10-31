@@ -16,7 +16,7 @@ spec:
           stringData:
             admin-user: ENC[AES256_GCM,data:pE4Mf0Q=,iv:J+NorTITEx+2PGf2JBVd67EpnWIOkPyH+WCNkdpOF1w=,tag:RScDLDFUJNX/HT+oQeF3mg==,type:str]
             #ENC[AES256_GCM,data:qBUVrv9hrU4=,iv:j/SOmoXX28eP8zDkBsGAonHfY9IeTwrj693Dp0QraPA=,tag:kz/SxxNLM2XqszCY82ECdQ==,type:comment]
-            admin-password: null
+            admin-password: ENC[AES256_GCM,data:9IQurMYDgfwk,iv:s6tJ6iuASmZ28eM6YGt12FxQLNgqPAng3fFgv/pzzCI=,tag:WT2PBhQoD5CX9/Wk31Ggvw==,type:str]
 sops:
     age:
         - enc: |
@@ -29,6 +29,6 @@ sops:
             -----END AGE ENCRYPTED FILE-----
           recipient: age1tmzhe2zxesm02xf06al2hgml6tg5srw5ljr8ag9zm223jdswkgvq945ua9
     encrypted_regex: ^(data|stringData)$
-    lastmodified: "2026-10-31T17:17:19Z"
-    mac: ENC[AES256_GCM,data:/DX7/X7aYkWrcJ7+bHRdLLC4ltZyf4S9l2Ey68jcauVVOb2v2DpAWW7Kil8liZPTBXbRWRWi/FgZ92eQXv5EtNZrJWdjUzyOu9qC8dHh6xOa4Vb3xTkbtc9Ty5nn8tRJHBkkQRdSwH6UxnMrUdj+S4ML+QbzcDrlgRHtDZhR+1Q=,iv:an+gnGZorDISpg6YZWcQRkyNGHn5tpG+6swJpFGxE3g=,tag:SPYwhRhu6GItO9spzOt1LA==,type:str]
+    lastmodified: "2026-10-31T17:22:03Z"
+    mac: ENC[AES256_GCM,data:JQ902irkN/igAtXP6gz1PPVfp/RvL/NjXlRXfmreTXU2vKIraIgM1kZWpVjFTGSQHU39/SdfVwVzXRfCf8CdTS3pymr4ZMDmk5xoBkOywe/JbDcaJVIFVm8qCkq2K74h5gwagRryT3LegYk6CMPb/J6ntn0jWfj6HwDUQzVpFss=,iv:t5VX7bbKTKn4aUR26RLB3EkmAh+TdD5fDP07eXCi7rQ=,tag:I3ZzHi2eO/iOAWPLEn9gHg==,type:str]
     version: 3.13.3
