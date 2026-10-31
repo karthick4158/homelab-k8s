@@ -110,6 +110,33 @@ kubeadm init --pod-network-cidr=10.244.0.0/16 \
 - Fallback without Traefik: `kubectl -n headlamp port-forward svc/headlamp 4466:80`, then
   http://localhost:4466.
 
+## Media downloads (VPN)
+
+- `apps/media/downloads.yaml`: one pod with qBittorrent, Transmission, Radarr, Sonarr and Seerr
+  behind one gluetun VPN sidecar (`components/gluetun`). Each app has its own config PVC, Service
+  and HTTPRoute in its own file. Web UI ports must be listed in `FIREWALL_INPUT_PORTS`
+  (`apps/media/kustomization.yaml`, now `8080,7878,8989,5055,9091,9999`).
+
+### Transmission
+
+- https://transmission.homelab.lan (`apps/media/transmission.yaml`), LinuxServer image, web UI on
+  9091, config on a 500Mi local-path PVC, library mounted at `/data` like qBittorrent. Needs a DNS
+  record `transmission.homelab.lan -> 10.0.0.89` in Pi-hole and AdGuard.
+- Downloads go to `/data/downloads/complete` (in progress: `/data/downloads/incomplete`). The repo
+  defines no download folder for qBittorrent, so this path is new: check it fits the library and
+  change it in the web UI (Edit preferences > Downloading) if not. The `transmission-seed` init
+  container writes these paths into `settings.json` only on first start; afterwards the file is
+  Transmission's own.
+- Peer port 51413 (`PEERPORT`); qBittorrent keeps its image default 6881, so they do not clash in
+  the shared network namespace. Neither port is forwarded through the VPN (outbound peers only).
+- No password by default: anyone on the LAN who reaches the hostname can use it. To add one later,
+  create `apps/media/transmission-auth.sops.yaml`, a `SopsSecret` (namespace `media`) with a
+  secret `transmission-auth` holding `stringData` keys `USER` and `PASS`, encrypt it with
+  `sops -e -i`, add it to `apps/media/kustomization.yaml`, and give the `transmission` container
+  `envFrom: [{secretRef: {name: transmission-auth}}]`. The image applies USER/PASS on every start.
+- Radarr/Sonarr: Settings > Download Clients > add Transmission, host `localhost`, port `9091`
+  (same pod), URL base `/transmission/`, plus the username/password once they are set.
+
 ## Updating images by hand
 
 - Versions live in the repo: container image tags in the `image:` lines under `apps/` and

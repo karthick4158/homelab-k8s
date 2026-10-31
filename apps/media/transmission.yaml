@@ -1,0 +1,48 @@
+# Transmission, reached via traefik-gateway at transmission.homelab.lan (http
+# and https). Its container runs in the shared VPN pod (downloads.yaml); this
+# file holds its config volume, Service and route. The web UI has no password
+# by default (see docs/cluster-setup.md).
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: transmission-config
+  namespace: media
+spec:
+  accessModes: [ReadWriteOnce]
+  # No storageClassName: uses the default (local-path).
+  resources:
+    requests:
+      storage: 500Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: transmission
+  namespace: media
+spec:
+  selector:
+    app: downloads  # the shared pod in downloads.yaml
+  ports:
+    - name: http
+      port: 9091
+      targetPort: transmission  # this app's container port
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: transmission
+  namespace: media
+spec:
+  parentRefs:
+    - name: traefik-gateway
+      namespace: traefik
+      sectionName: web
+    - name: traefik-gateway
+      namespace: traefik
+      sectionName: websecure
+  hostnames:
+    - transmission.homelab.lan
+  rules:
+    - backendRefs:
+        - name: transmission
+          port: 9091

@@ -1,9 +1,10 @@
-# qBittorrent, Radarr, Sonarr and Seerr in one pod, so they all share the
-# gluetun VPN sidecar (components/gluetun): one VPN connection, one kill
-# switch. Each app keeps its own config volume, Service and hostname (see
-# qbittorrent.yaml, radarr.yaml, sonarr.yaml, seerr.yaml); the Services pick
-# their app by container port name. Inside the pod the apps reach each other
-# on localhost (e.g. Radarr -> qBittorrent at localhost:8080).
+# qBittorrent, Transmission, Radarr, Sonarr and Seerr in one pod, so they all
+# share the gluetun VPN sidecar (components/gluetun): one VPN connection, one
+# kill switch. Each app keeps its own config volume, Service and hostname (see
+# qbittorrent.yaml, transmission.yaml, radarr.yaml, sonarr.yaml, seerr.yaml);
+# the Services pick their app by container port name. Inside the pod the apps
+# reach each other on localhost (e.g. Radarr -> qBittorrent at localhost:8080,
+# Transmission at localhost:9091).
 #
 # No pod-level securityContext on purpose: an fsGroup here would also apply to
 # the NFS library volume and could chown K's whole library. Seerr's user is
@@ -29,6 +30,30 @@ spec:
       labels:
         app: downloads
     spec:
+      initContainers:
+        # First start only: seed Transmission's settings.json from the image
+        # defaults with the download dirs moved from /downloads to
+        # /data/downloads (the library). Skipped once the file exists, so
+        # changes made in the web UI are kept. Needs no network (kustomize
+        # puts it after the gluetun sidecar, so it starts once the VPN is up).
+        - name: transmission-seed
+          image: lscr.io/linuxserver/transmission:4.1.4-r0-ls367
+          command:
+            - sh
+            - -c
+            - >-
+              [ -f /config/settings.json ] ||
+              sed 's#"/downloads/#"/data/downloads/#' /defaults/settings.json
+              > /config/settings.json
+          volumeMounts:
+            - name: transmission-config
+              mountPath: /config
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              memory: 64Mi
       containers:
         - name: qbittorrent
           image: lscr.io/linuxserver/qbittorrent:5.3.0_v2.1.2-ls485
@@ -78,6 +103,50 @@ spec:
               memory: 256Mi
             limits:
               memory: 1Gi
+
+        - name: transmission
+          image: lscr.io/linuxserver/transmission:4.1.4-r0-ls367
+          env:
+            # Same user/group as qBittorrent (see above).
+            - name: PUID
+              value: "1000"
+            - name: PGID
+              value: "100"
+            - name: UMASK
+              value: "002"
+            # Peer port, set explicitly: qBittorrent keeps the image default
+            # 6881 in the same network namespace, so they do not clash.
+            - name: PEERPORT
+              value: "51413"
+          ports:
+            - name: transmission
+              containerPort: 9091
+          volumeMounts:
+            - name: transmission-config
+              mountPath: /config
+            - name: library
+              mountPath: /data
+          # TCP probes: an HTTP check would get 401 once USER/PASS are set.
+          readinessProbe:
+            tcpSocket:
+              port: transmission
+          startupProbe:
+            tcpSocket:
+              port: transmission
+            periodSeconds: 10
+            failureThreshold: 30
+          livenessProbe:
+            tcpSocket:
+              port: transmission
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 256Mi
 
         - name: radarr
           image: lscr.io/linuxserver/radarr:6.4.4.10685-ls324
@@ -203,6 +272,9 @@ spec:
         - name: qbittorrent-config
           persistentVolumeClaim:
             claimName: qbittorrent-config  # qbittorrent.yaml
+        - name: transmission-config
+          persistentVolumeClaim:
+            claimName: transmission-config # transmission.yaml
         - name: radarr-config
           persistentVolumeClaim:
             claimName: radarr-config       # radarr.yaml
