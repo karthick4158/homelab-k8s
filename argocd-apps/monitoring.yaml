@@ -89,12 +89,13 @@ spec:
           grafana.ini:
             server:
               root_url: https://grafana.homelab.lan
+          # Grafana 13 was OOMKilled at a 256Mi limit; give it headroom.
           resources:
             requests:
               cpu: 100m
-              memory: 128Mi
+              memory: 192Mi
             limits:
-              memory: 256Mi
+              memory: 768Mi
           defaultDashboardsEnabled: true
           sidecar:
             dashboards:
