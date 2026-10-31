@@ -1,0 +1,33 @@
+# Grafana admin login. The operator creates Secret monitoring/grafana-admin
+# from this; the chart reads it via grafana.admin.existingSecret.
+#
+# To set the real password, run:
+#   sops infrastructure/monitoring/grafana-admin.sops.yaml
+# It opens decrypted in your editor and re-encrypts when you save.
+# Replace REPLACE_ME with the password.
+apiVersion: isindir.github.com/v1alpha3
+kind: SopsSecret
+metadata:
+    name: grafana-admin
+    namespace: monitoring
+spec:
+    secretTemplates:
+        - name: grafana-admin
+          stringData:
+            admin-user: ENC[AES256_GCM,data:pE4Mf0Q=,iv:J+NorTITEx+2PGf2JBVd67EpnWIOkPyH+WCNkdpOF1w=,tag:RScDLDFUJNX/HT+oQeF3mg==,type:str]
+            admin-password: ENC[AES256_GCM,data:Eq9BoVOJ/BDk8g==,iv:+Q9bCVqf3Mi/PscXe+hNroEv0AiDqZ1RcPLewZhWBjE=,tag:5/C4/PZNCTL4j/gYBqvjuQ==,type:str]
+sops:
+    age:
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSAxdkJHWUlTMmRSUXlYdUdY
+            VDFpQ0U2dkJ0WkNnNzUycG5QeDNCMmhlYUg4ClVFTkxoY0RPOVRlWkZGRURZNkx5
+            L0p5MGNDak8xUkQ4QzdLVDVEZktETlUKLS0tICtBS0x0VnBVa3lCQ1gyZWNvM2NG
+            eVlBWEZ5YnFKYzRudG5LdDV5UEJLWEkKBU+lP9QthR7F9GfvzrXKT4AwqKeokNFe
+            6LHBSSjhNuBiKe6SFVez97EOB2i0H/JDMJRBQDYH0TP6zRqnbLaqKg==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age1tmzhe2zxesm02xf06al2hgml6tg5srw5ljr8ag9zm223jdswkgvq945ua9
+    encrypted_regex: ^(data|stringData)$
+    lastmodified: "2026-10-31T17:05:34Z"
+    mac: ENC[AES256_GCM,data:T/cNnlJigT3GuBt7J9qfcAK2bDpAuE1sNhZUykygBOn+f1p6e+Ohwk2FsOCGP1oj51VKOy9YpcANuJ009ZzJRflvNWcTIdy0EzGybU9z1fw6T2rx2upKf0LlrgQDb1gSIhTRp2lodl4HgFeAX12C6sBlVzZamEG0Z3k3zRT+QG4=,iv:MFY4ZaE8Pe2yQQFiPj9MGqmtptT0WpktJjXaREda4/w=,tag:3oH4+lxSjqJ7x2Rj+pr4rw==,type:str]
+    version: 3.13.3

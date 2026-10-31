@@ -69,6 +69,25 @@ kubeadm init --pod-network-cidr=10.244.0.0/16 \
   `apps/media/gluetun-vpn.sops.yaml`.
 - Never commit an unencrypted secret.
 
+## Monitoring
+
+- kube-prometheus-stack 92.16.1 (`argocd-apps/monitoring.yaml`, Helm values inline): Prometheus,
+  Alertmanager, Grafana, node-exporter, kube-state-metrics, Prometheus Operator.
+- `argocd-apps/monitoring-extras.yaml` -> `infrastructure/monitoring/`: the `monitoring` namespace
+  (`gateway-access: "true"`, `Delete=false`), the `grafana-admin` SopsSecret and the HTTPRoute.
+- Grafana: https://grafana.homelab.lan, user `admin`. Needs a DNS record
+  `grafana.homelab.lan -> 10.0.0.89` in Pi-hole and AdGuard.
+- Grafana password: `sops infrastructure/monitoring/grafana-admin.sops.yaml`, replace
+  `admin-password`, save (re-encrypts), commit, push. Grafana reads it at startup:
+  `kubectl -n monitoring rollout restart deployment monitoring-grafana`.
+- Prometheus: 15 days / 8 GB retention on a 10Gi local-path volume; Grafana on 2Gi.
+- node-exporter listens on 9101, not 9100: Traefik already holds host port 9100 on k8s-worker-1
+  (hostNetwork), and node-exporter runs on the host network too.
+- etcd, scheduler, controller-manager and kube-proxy are not scraped (kubeadm binds their metrics
+  to 127.0.0.1); their rules are off.
+- Alertmanager has no notification channel yet (all alerts go to the `null` receiver).
+- Fallback without Traefik: `kubectl -n monitoring port-forward svc/monitoring-grafana 3000:80`.
+
 ## Updating images by hand
 
 - Versions live in the repo: container image tags in the `image:` lines under `apps/` and

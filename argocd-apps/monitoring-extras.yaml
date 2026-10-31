@@ -1,0 +1,22 @@
+# The monitoring namespace, Grafana's admin Secret and its route at
+# grafana.homelab.lan (infrastructure/monitoring). The chart itself is the
+# monitoring app. The namespace is marked Delete=false so removing this app
+# never deletes Prometheus or Grafana data.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: monitoring-extras
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:karthick4158/homelab-k8s.git
+    targetRevision: main
+    path: infrastructure/monitoring
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

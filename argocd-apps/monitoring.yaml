@@ -1,0 +1,136 @@
+# kube-prometheus-stack (chart 92.16.1): Prometheus, Alertmanager, Grafana,
+# node-exporter and kube-state-metrics. The monitoring namespace, Grafana's
+# admin Secret and its route come from monitoring-extras.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: monitoring
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://prometheus-community.github.io/helm-charts
+    chart: kube-prometheus-stack
+    targetRevision: 92.16.1
+    helm:
+      valuesObject:
+        # kubeadm binds etcd, scheduler, controller-manager and kube-proxy
+        # metrics to 127.0.0.1, so Prometheus can't scrape them; skip them and
+        # their rules instead of carrying alerts that always fire.
+        kubeEtcd:
+          enabled: false
+        kubeScheduler:
+          enabled: false
+        kubeControllerManager:
+          enabled: false
+        kubeProxy:
+          enabled: false
+        defaultRules:
+          rules:
+            etcd: false
+            kubeSchedulerAlerting: false
+            kubeSchedulerRecording: false
+            kubeControllerManager: false
+            kubeProxy: false
+
+        prometheusOperator:
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 128Mi
+
+        prometheus:
+          prometheusSpec:
+            retention: 15d
+            retentionSize: 8GB  # below the 10Gi volume, so the disk never fills
+            resources:
+              requests:
+                cpu: 200m
+                memory: 512Mi
+              limits:
+                memory: 1Gi
+            storageSpec:
+              volumeClaimTemplate:
+                spec:
+                  storageClassName: local-path
+                  accessModes: [ReadWriteOnce]
+                  resources:
+                    requests:
+                      storage: 10Gi
+            # Pick up ServiceMonitors/PodMonitors from any namespace, not only
+            # the ones labelled for this Helm release.
+            serviceMonitorSelectorNilUsesHelmValues: false
+            podMonitorSelectorNilUsesHelmValues: false
+
+        # Default config: every alert goes to the "null" receiver. A
+        # notification channel (email, ntfy, Telegram, ...) is still to pick.
+        alertmanager:
+          enabled: true
+          alertmanagerSpec:
+            resources:
+              requests:
+                cpu: 10m
+                memory: 32Mi
+              limits:
+                memory: 64Mi
+
+        grafana:
+          enabled: true
+          admin:
+            existingSecret: grafana-admin  # infrastructure/monitoring/grafana-admin.sops.yaml
+            userKey: admin-user
+            passwordKey: admin-password
+          persistence:
+            enabled: true
+            storageClassName: local-path
+            size: 2Gi
+          grafana.ini:
+            server:
+              root_url: https://grafana.homelab.lan
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              memory: 256Mi
+          defaultDashboardsEnabled: true
+          sidecar:
+            dashboards:
+              enabled: true
+          service:
+            type: ClusterIP
+            port: 80
+
+        # Traefik already holds host port 9100 on k8s-worker-1 (hostNetwork),
+        # and node-exporter also runs on the host network, so move it to 9101.
+        prometheus-node-exporter:
+          service:
+            port: 9101
+            targetPort: 9101
+
+        kube-state-metrics:
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 128Mi
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true  # the CRDs are too large for client-side apply
+    # The namespace comes from monitoring-extras, so the first sync may have
+    # to wait for it.
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 3m
