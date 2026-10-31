@@ -1,0 +1,92 @@
+# Loki (chart 20.2.0) in single-binary mode: stores the pod logs Alloy ships,
+# 7 days on a 10Gi local-path volume. Grafana reads it as the "Loki" data
+# source (monitoring app). The chart comes from grafana-community: the
+# grafana/loki chart is Enterprise-only since March 2026. The monitoring
+# namespace comes from monitoring-extras.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: loki
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://grafana-community.github.io/helm-charts
+    chart: loki
+    targetRevision: 20.2.0
+    helm:
+      # This chart rejects unknown top-level keys; only add ones it defines.
+      valuesObject:
+        # One pod holding every Loki component; enough for a homelab.
+        deploymentMode: Monolithic
+        loki:
+          auth_enabled: false  # single tenant; Alloy pushes without a tenant header
+          commonConfig:
+            replication_factor: 1
+          storage:
+            type: filesystem  # chunks and index on the PVC, no object store
+          schemaConfig:
+            configs:
+              - from: "2024-04-01"
+                store: tsdb
+                object_store: filesystem
+                schema: v13
+                index:
+                  prefix: loki_index_
+                  period: 24h
+          limits_config:
+            retention_period: 168h  # 7 days
+          # The compactor is what actually deletes logs past retention.
+          compactor:
+            working_directory: /var/loki/compactor
+            retention_enabled: true
+            delete_request_store: filesystem
+          pattern_ingester:
+            enabled: true  # log patterns in Grafana's Explore Logs
+        singleBinary:
+          replicas: 1
+          persistence:
+            enabled: true
+            size: 10Gi
+            storageClass: local-path
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 768Mi  # Grafana was OOMKilled at 256Mi; leave headroom
+        # Scalable-mode parts, caches, canary and tests: not needed for a
+        # single binary.
+        gateway:
+          enabled: false
+        chunksCache:
+          enabled: false
+        resultsCache:
+          enabled: false
+        lokiCanary:
+          enabled: false
+        test:
+          enabled: false
+        backend:
+          replicas: 0
+        read:
+          replicas: 0
+        write:
+          replicas: 0
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true  # same as the monitoring app
+    # The namespace comes from monitoring-extras, so the first sync may have
+    # to wait for it.
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 3m

@@ -88,6 +88,20 @@ kubeadm init --pod-network-cidr=10.244.0.0/16 \
 - Alertmanager has no notification channel yet (all alerts go to the `null` receiver).
 - Fallback without Traefik: `kubectl -n monitoring port-forward svc/monitoring-grafana 3000:80`.
 
+### Logs (Loki + Alloy)
+
+- Loki 20.2.0 (`argocd-apps/loki.yaml`): single binary, filesystem storage on a 10Gi local-path
+  volume, 7 days retention (the compactor deletes older logs), single tenant (no auth).
+- The Loki chart comes from `https://grafana-community.github.io/helm-charts`, not
+  grafana.github.io: the grafana/loki chart is Enterprise-only since March 2026.
+- Alloy 1.15.0 (`argocd-apps/alloy.yaml`): a DaemonSet on every node, the control plane included
+  (tolerates all taints). Each pod reads its node's pod logs through the Kubernetes API, adds the
+  labels `namespace`, `pod`, `container`, `app`, and pushes to
+  `http://loki.monitoring.svc:3100/loki/api/v1/push`.
+- Grafana has a `Loki` data source (uid `loki`, `http://loki.monitoring.svc:3100`).
+- Reading logs: Grafana -> Explore -> data source Loki, query e.g. `{namespace="media"}` or
+  `{namespace="media"} |= "error"`.
+
 ## Updating images by hand
 
 - Versions live in the repo: container image tags in the `image:` lines under `apps/` and
