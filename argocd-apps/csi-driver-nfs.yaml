@@ -1,0 +1,24 @@
+# NFS CSI driver (chart from kubernetes-csi.github.io). Lets pods mount the
+# OpenMediaVault NFS share (10.0.0.65). The SMB share on OMV is untouched.
+# No valuesObject: storageClass.create stays false (the existing OMV share is
+# wired up with a static PersistentVolume) and externalSnapshotter stays off.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: csi-driver-nfs
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://kubernetes-csi.github.io/csi-driver-nfs
+    chart: csi-driver-nfs
+    targetRevision: 4.13.6
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true
