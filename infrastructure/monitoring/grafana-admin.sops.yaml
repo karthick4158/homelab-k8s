@@ -29,6 +29,6 @@ sops:
             -----END AGE ENCRYPTED FILE-----
           recipient: age1tmzhe2zxesm02xf06al2hgml6tg5srw5ljr8ag9zm223jdswkgvq945ua9
     encrypted_regex: ^(data|stringData)$
-    lastmodified: "2026-10-31T17:11:19Z"
-    mac: ENC[AES256_GCM,data:BV4FCY1aIhWocu2OluMZLzX7xTB/3sCnIWOPK8vbo9AgyiwV3/ezRhS157ULHpjZTCpa4ikq88rQfdREJ4vt4yd+sxM5ZSOh9DtLiLWFj8tGdarW80rDrr7IGkLrjDF35iIaxQzWD6OsmZFQ/pyhhUdR58asu4abaIZn4kBCZLw=,iv:VFqhKvJfAoRLNln4RDGM6m+cj+e3WqqM7woo93CHRyE=,tag:5Wsa0JOJFWRbVXBzjwTV1g==,type:str]
+    lastmodified: "2026-10-31T17:17:19Z"
+    mac: ENC[AES256_GCM,data:/DX7/X7aYkWrcJ7+bHRdLLC4ltZyf4S9l2Ey68jcauVVOb2v2DpAWW7Kil8liZPTBXbRWRWi/FgZ92eQXv5EtNZrJWdjUzyOu9qC8dHh6xOa4Vb3xTkbtc9Ty5nn8tRJHBkkQRdSwH6UxnMrUdj+S4ML+QbzcDrlgRHtDZhR+1Q=,iv:an+gnGZorDISpg6YZWcQRkyNGHn5tpG+6swJpFGxE3g=,tag:SPYwhRhu6GItO9spzOt1LA==,type:str]
     version: 3.13.3
