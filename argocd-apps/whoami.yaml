@@ -4,6 +4,8 @@ kind: Application
 metadata:
   name: whoami
   namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io  # cascade-delete resources when this app is removed
 spec:
   project: default
   source:
