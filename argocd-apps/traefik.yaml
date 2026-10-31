@@ -60,6 +60,18 @@ spec:
                 selector:
                   matchLabels:
                     gateway-access: "true"
+            websecure:
+              port: 443  # must match ports.websecure.port
+              protocol: HTTPS
+              hostname: "*.homelab.lan"
+              mode: Terminate
+              certificateRefs:
+                - name: homelab-wildcard-tls  # issued by cert-manager-issuers
+              namespacePolicy:
+                from: Selector
+                selector:
+                  matchLabels:
+                    gateway-access: "true"
         ingressRoute:
           dashboard:
             enabled: false

@@ -1,0 +1,21 @@
+# Wildcard cert for the Traefik Gateway's websecure listener. Lives in the
+# traefik namespace so the Gateway can reference the secret directly.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: homelab-wildcard
+  namespace: traefik
+spec:
+  secretName: homelab-wildcard-tls
+  dnsNames:
+    - homelab.lan
+    - "*.homelab.lan"
+  duration: 2160h     # 90 days
+  renewBefore: 720h   # 30 days
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: homelab-ca
+    kind: ClusterIssuer
+    group: cert-manager.io

@@ -1,0 +1,30 @@
+# cert-manager v1.21.3 (chart from charts.jetstack.io). Issues the home CA and
+# the *.homelab.lan wildcard cert (see infrastructure/cert-manager-issuers).
+# Note: 1.21 officially lists Kubernetes up to 1.36; we run 1.37. Bump to 1.22
+# when it is released.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cert-manager
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://charts.jetstack.io
+    chart: cert-manager
+    targetRevision: v1.21.3
+    helm:
+      valuesObject:
+        crds:
+          enabled: true
+          keep: true  # deleting the app must not delete every Certificate
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: cert-manager
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

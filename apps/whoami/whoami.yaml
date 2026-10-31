@@ -71,6 +71,9 @@ spec:
     - name: traefik-gateway
       namespace: traefik
       sectionName: web
+    - name: traefik-gateway
+      namespace: traefik
+      sectionName: websecure
   hostnames:
     - whoami.homelab.lan
   rules:

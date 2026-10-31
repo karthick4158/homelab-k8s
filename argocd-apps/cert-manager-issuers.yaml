@@ -1,0 +1,28 @@
+# Home CA, ClusterIssuers and the *.homelab.lan wildcard cert. Needs the
+# cert-manager CRDs, so it retries until the cert-manager app has synced.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cert-manager-issuers
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:karthick4158/homelab-k8s.git
+    targetRevision: main
+    path: infrastructure/cert-manager-issuers
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: cert-manager
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - SkipDryRunOnMissingResource=true
+    retry:
+      limit: 10
+      backoff:
+        duration: 30s
+        factor: 2
+        maxDuration: 5m
