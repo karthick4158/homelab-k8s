@@ -1,0 +1,22 @@
+# The headlamp namespace (with the gateway-access label), the read-only
+# headlamp-admin ServiceAccount used to log in, and the route at
+# headlamp.homelab.lan (infrastructure/headlamp). The chart itself is the
+# headlamp app.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: headlamp-extras
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:karthick4158/homelab-k8s.git
+    targetRevision: main
+    path: infrastructure/headlamp
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: headlamp
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

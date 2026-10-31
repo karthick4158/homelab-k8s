@@ -1,0 +1,7 @@
+# Owned here rather than by the chart app, so it can carry the label.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: headlamp
+  labels:
+    gateway-access: "true"  # allows routes here to attach to traefik-gateway

@@ -102,6 +102,26 @@ kubeadm init --pod-network-cidr=10.244.0.0/16 \
 - Reading logs: Grafana -> Explore -> data source Loki, query e.g. `{namespace="media"}` or
   `{namespace="media"} |= "error"`.
 
+### Headlamp
+
+- Kubernetes web UI (pods, logs, events, nodes, workloads). Chart 0.46.0
+  (`argocd-apps/headlamp.yaml`), one pod on k8s-worker-1.
+- `argocd-apps/headlamp-extras.yaml` -> `infrastructure/headlamp/`: the `headlamp` namespace
+  (`gateway-access: "true"`), the HTTPRoute and the `headlamp-admin` ServiceAccount.
+- URL: https://headlamp.homelab.lan. Needs a DNS record `headlamp.homelab.lan -> 10.0.0.89` in
+  Pi-hole and AdGuard.
+- Login: paste a ServiceAccount token. Get one (valid 24h) with
+  `kubectl -n headlamp create token headlamp-admin --duration=24h`. Never commit tokens.
+- Read-only: `headlamp-admin` is bound to the built-in `view` ClusterRole (no Secrets, no
+  changes, no exec). The chart's own cluster-admin binding is turned off; the Headlamp pod acts
+  only with the token you log in with.
+- Edit rights later: in `infrastructure/headlamp/serviceaccount.yaml` change `roleRef.name` from
+  `view` to `edit` (or `admin`/`cluster-admin`), and the binding name with it (`roleRef` cannot be
+  changed in place, so Argo CD replaces the binding when the name changes). Commit, push, get a new
+  token.
+- Fallback without Traefik: `kubectl -n headlamp port-forward svc/headlamp 4466:80`, then
+  http://localhost:4466.
+
 ## Updating images by hand
 
 - Versions live in the repo: container image tags in the `image:` lines under `apps/` and
