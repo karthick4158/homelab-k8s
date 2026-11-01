@@ -56,8 +56,15 @@ spec:
           volumeMounts:
             - name: config
               mountPath: /config
+            # The old Plex saw these folders as /movies and /tv, and its database
+            # stores those paths, so keep them (subPath = folder inside the share).
             - name: library
-              mountPath: /data
+              mountPath: /movies
+              subPath: Video/Movies
+              readOnly: true
+            - name: library
+              mountPath: /tv
+              subPath: Video/tv
               readOnly: true
           readinessProbe:
             tcpSocket:
