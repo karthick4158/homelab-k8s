@@ -240,6 +240,45 @@ spec:
               memory: 256Mi
             limits:
               memory: 1Gi
+        
+        - name: prowlarr
+          image: lscr.io/linuxserver/prowlarr:2.7.0.5723-ls166
+          env:
+            # Same user/group as the other apps (see above).
+            - name: PUID
+              value: "1000"
+            - name: PGID
+              value: "100"
+            - name: UMASK
+              value: "002"
+          ports:
+            - name: prowlarr
+              containerPort: 9696
+          volumeMounts:
+            - name: prowlarr-config
+              mountPath: /config
+          readinessProbe:
+            tcpSocket:
+              port: prowlarr
+          startupProbe:
+            httpGet:
+              path: /ping
+              port: prowlarr
+            periodSeconds: 10
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /ping
+              port: prowlarr
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              memory: 512Mi
 
         - name: seerr
           image: ghcr.io/seerr-team/seerr:v3.5.1
@@ -298,3 +337,6 @@ spec:
         - name: library
           persistentVolumeClaim:
             claimName: library  # media-library.yaml
+        - name: prowlarr-config
+          persistentVolumeClaim:
+            claimName: prowlarr-config
