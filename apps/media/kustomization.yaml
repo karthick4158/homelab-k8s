@@ -38,3 +38,7 @@ configMapGenerator:
   - name: mkv-rename-script
     files:
       - mkv-rename.sh
+  # Script for the ip-notifier container in the downloads pod (downloads.yaml).
+  - name: ip-notifier-script
+    files:
+      - ip-notifier.py

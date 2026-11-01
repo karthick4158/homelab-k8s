@@ -318,7 +318,58 @@ spec:
               memory: 256Mi
             limits:
               memory: 1Gi
+
+        # Sends the pod's public IP (the VPN exit, since it shares gluetun's
+        # network) to Telegram at start and whenever it changes. Script is
+        # apps/media/ip-notifier.py (ConfigMap generated in kustomization.yaml).
+        # Secret keys are optional so a missing telegram-notifier Secret does
+        # not block the whole pod; the script then logs "Telegram credentials
+        # missing".
+        - name: ip-notifier
+          image: python:3.13.9-slim
+          command: [python, /scripts/ip-notifier.py]
+          env:
+            - name: TELEGRAM_BOT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: telegram-notifier
+                  key: bot-token
+                  optional: true
+            - name: TELEGRAM_CHAT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: telegram-notifier
+                  key: chat-id
+                  optional: true
+            - name: CHECK_INTERVAL
+              value: "300"
+            # Print logs straight away instead of buffering them.
+            - name: PYTHONUNBUFFERED
+              value: "1"
+          volumeMounts:
+            - name: ip-notifier-script
+              mountPath: /scripts
+              readOnly: true
+          # Same user as the other apps; needs no file access beyond the script.
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 100
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+            seccompProfile:
+              type: RuntimeDefault
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 64Mi
       volumes:
+        - name: ip-notifier-script
+          configMap:
+            name: ip-notifier-script  # generated in kustomization.yaml
         - name: qbittorrent-config
           persistentVolumeClaim:
             claimName: qbittorrent-config  # qbittorrent.yaml
