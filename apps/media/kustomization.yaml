@@ -19,6 +19,7 @@ resources:
   - sonarr.yaml
   - seerr.yaml
   - gluetun-vpn.sops.yaml
+  - telegram-notifier.sops.yaml
   # Rename-and-move CronJob; its script is generated below.
   - mkv-rename.yaml
 
