@@ -1,0 +1,26 @@
+apiVersion: isindir.github.com/v1alpha3
+kind: SopsSecret
+metadata:
+    name: telegram-notifier
+    namespace: media
+spec:
+    secretTemplates:
+        - name: telegram-notifier
+          stringData:
+            bot-token: ENC[AES256_GCM,data:b8bzLKd017LTX3H9MnisLcCzQFLb2JSkVk4OXuiBeNh6WFq+s5t+3jl6bRa28Q==,iv:gruKZq78PkWjJ0eSlCnpkZ/sUArLJKvFkf9sLzlSRNc=,tag:atccIct1UJg/4Jeqng6OAQ==,type:str]
+            chat-id: ENC[AES256_GCM,data:RddS6cHGjPXiLdmwHrJqsy5MQ0SYwCU63ym8IUCqAtAsHNy/KhzouZCL72zIgw==,iv:wg3ENw7DNz7wKWOzxhBy95ghKZ3GPObwJ/mh8GAMF5s=,tag:P0T1KIU2iDHH4wB/IasPZA==,type:str]
+sops:
+    age:
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSByRzhFWU1LUThyUWZyQThv
+            YVdheWQrenA5cjdVeXE0WjNaZG9zTFg3UkRRCnpIWXdDWFlKUXZNZ2c0ZHQvK0lz
+            Vms5WFBqRXJXU1dVUTdIZzA1WC93VXcKLS0tIE5HTUNqa1dCZUpWWFY4WThQTnBq
+            NmRLNlJkTkxGSEhFckl0ZmJxTCtRcWcKgcKoo7p/VYiZ21VZIv+SQJecKGpSRz1w
+            TGOqcpUk5mj20efLV4ZzyI09dwIhTg3ht3KvhEWgmbWrKpCKUhHOBA==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age1tmzhe2zxesm02xf06al2hgml6tg5srw5ljr8ag9zm223jdswkgvq945ua9
+    encrypted_regex: ^(data|stringData)$
+    lastmodified: "2026-11-01T12:31:36Z"
+    mac: ENC[AES256_GCM,data:3eQYQr43fe00B9x6amRbpDDeY82WRzfk8pv07k2oXtHmDGYlpTViG/yjvdp388UpmRLmYZQLbtVFvsZeLGVBUZSjK7iT+CGuJAgQk4k4TXeRXIWRQQILFYejXIojOvKQsarEU0Hqzu17q1WvvMcxDohV/iFq3jAZAb903Zogn40=,iv:FiFUa/XcEO1G2ee98EomfW+BbzH773xycPzc9kT3nwU=,tag:p6+bC7Xd9FXARLoNRags3A==,type:str]
+    version: 3.13.3
