@@ -8,7 +8,7 @@ spec:
         - name: telegram-notifier
           stringData:
             bot-token: ENC[AES256_GCM,data:b8bzLKd017LTX3H9MnisLcCzQFLb2JSkVk4OXuiBeNh6WFq+s5t+3jl6bRa28Q==,iv:gruKZq78PkWjJ0eSlCnpkZ/sUArLJKvFkf9sLzlSRNc=,tag:atccIct1UJg/4Jeqng6OAQ==,type:str]
-            chat-id: ENC[AES256_GCM,data:RddS6cHGjPXiLdmwHrJqsy5MQ0SYwCU63ym8IUCqAtAsHNy/KhzouZCL72zIgw==,iv:wg3ENw7DNz7wKWOzxhBy95ghKZ3GPObwJ/mh8GAMF5s=,tag:P0T1KIU2iDHH4wB/IasPZA==,type:str]
+            chat-id: ENC[AES256_GCM,data:+bgZDTBedVeZSg==,iv:pk5XGgBgIGx+EfTM93sk2/8IwegN4CaatYcG5wqeNRk=,tag:hywtkFa+36xAuwFo9uXcBQ==,type:str]
 sops:
     age:
         - enc: |
@@ -21,6 +21,6 @@ sops:
             -----END AGE ENCRYPTED FILE-----
           recipient: age1tmzhe2zxesm02xf06al2hgml6tg5srw5ljr8ag9zm223jdswkgvq945ua9
     encrypted_regex: ^(data|stringData)$
-    lastmodified: "2026-11-01T12:31:36Z"
-    mac: ENC[AES256_GCM,data:3eQYQr43fe00B9x6amRbpDDeY82WRzfk8pv07k2oXtHmDGYlpTViG/yjvdp388UpmRLmYZQLbtVFvsZeLGVBUZSjK7iT+CGuJAgQk4k4TXeRXIWRQQILFYejXIojOvKQsarEU0Hqzu17q1WvvMcxDohV/iFq3jAZAb903Zogn40=,iv:FiFUa/XcEO1G2ee98EomfW+BbzH773xycPzc9kT3nwU=,tag:p6+bC7Xd9FXARLoNRags3A==,type:str]
+    lastmodified: "2026-11-01T12:44:38Z"
+    mac: ENC[AES256_GCM,data:mgiu51AgjEzomC5jko2DaBd/lBQRBN1h/V4SFu3kqxPxAeRHvo7Oj1w4FiQHIrs5koOb6NTZkj2cWWu44EvXbiHQ6NnsbhhJ7CS8M54XikVB1HJzdAHG97BR15WTESI1opdDumawf0Sr2BQ7kYFv2E43hJET+3piIepJxal+KiI=,iv:CYSQPCdYL+BCzLbWAMi5bybPCDBbF2CS/UpVSKOQdyU=,tag:IuS9rLzfeqT8FOBBzkibNw==,type:str]
     version: 3.13.3
