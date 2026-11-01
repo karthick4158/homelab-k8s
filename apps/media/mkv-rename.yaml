@@ -45,7 +45,7 @@ spec:
                 - name: SOURCE_DIR
                   value: "/data/data/downloads/qbittorrent/completed"
                 - name: TARGET_DIR
-                  value: "/data/data/Video/Movies"
+                  value: "/data/Video/Movies"
               volumeMounts:
                 - name: script
                   mountPath: /scripts
