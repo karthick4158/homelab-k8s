@@ -1,0 +1,98 @@
+# Cricket notifier: polls Cricinfo and sends Team India alerts to Telegram
+# (github.com/karthick4158/cricket_scores, image built by its GitHub Action).
+# A long-running loop that paces its own polling, so a Deployment rather than
+# a CronJob. Outbound HTTPS only (cricinfo.com, api.telegram.org); no VPN,
+# no Service. /data/state.json remembers sent alerts so restarts never repeat
+# them.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: cricket-data
+  namespace: cricket
+spec:
+  accessModes: [ReadWriteOnce]
+  # No storageClassName: uses the default (local-path).
+  resources:
+    requests:
+      storage: 64Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cricket-notifier
+  namespace: cricket
+  labels:
+    app: cricket-notifier
+spec:
+  replicas: 1
+  # RWO volume, and two copies would send every alert twice.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: cricket-notifier
+  template:
+    metadata:
+      labels:
+        app: cricket-notifier
+    spec:
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: notifier
+          # Pinned to the commit tag pushed by the GitHub Action (sha-<short>).
+          image: ghcr.io/karthick4158/cricket_scores:sha-ce647ac
+          envFrom:
+            - configMapRef:
+                name: cricket-notifier-env  # generated in kustomization.yaml
+          env:
+            - name: TELEGRAM_BOT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: cricket-telegram
+                  key: bot-token
+            - name: TELEGRAM_CHAT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: cricket-telegram
+                  key: chat-id
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: tmp
+              mountPath: /tmp
+          # Same check as the image's HEALTHCHECK: the main loop touches
+          # /data/heartbeat at least once a minute.
+          livenessProbe:
+            exec:
+              command:
+                - python
+                - -c
+                - "import os,sys,time; sys.exit(0 if time.time()-os.path.getmtime('/data/heartbeat')<900 else 1)"
+            initialDelaySeconds: 60
+            periodSeconds: 60
+            timeoutSeconds: 5
+            failureThreshold: 3
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+            seccompProfile:
+              type: RuntimeDefault
+          resources:
+            requests:
+              cpu: 20m
+              memory: 64Mi
+            limits:
+              memory: 256Mi
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: cricket-data
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi

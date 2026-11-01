@@ -1,0 +1,20 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: cricket
+
+resources:
+  - namespace.yaml
+  - cricket-notifier.yaml
+  # Bot token + chat id (a different bot from media's telegram-notifier).
+  - cricket-telegram.sops.yaml
+
+configMapGenerator:
+  # Non-secret settings for the notifier; anything unset uses the app's
+  # default (see .env.example in github.com/karthick4158/cricket_scores).
+  - name: cricket-notifier-env
+    literals:
+      - TZ=America/Chicago
+      - TEAMS=India
+      - STATE_PATH=/data/state.json
+      - LOG_LEVEL=INFO

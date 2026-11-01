@@ -1,0 +1,19 @@
+# Cricket Telegram notifier (apps/cricket).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cricket
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:karthick4158/homelab-k8s.git
+    targetRevision: main
+    path: apps/cricket
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: cricket
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
