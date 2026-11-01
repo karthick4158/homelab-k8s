@@ -43,9 +43,9 @@ spec:
                 # /data/data/downloads/qbittorrent/completed). The job fails
                 # with an error until neither contains CHANGE_ME.
                 - name: SOURCE_DIR
-                  value: "/data/CHANGE_ME/source"
+                  value: "/data/data/downloads/qbittorrent/completed"
                 - name: TARGET_DIR
-                  value: "/data/CHANGE_ME/target"
+                  value: "/data/data/Video/Movies"
               volumeMounts:
                 - name: script
                   mountPath: /scripts
