@@ -117,6 +117,19 @@ kubeadm init --pod-network-cidr=10.244.0.0/16 \
   and HTTPRoute in its own file. Web UI ports must be listed in `FIREWALL_INPUT_PORTS`
   (`apps/media/kustomization.yaml`, now `8080,7878,8989,5055,9091,9999`).
 
+### Checking the VPN
+
+- `scripts/vpn-check.sh` (run from the Mac) finds the running `downloads` pod over
+  `ssh k8s@10.0.0.88 kubectl` (override with `SSH_TARGET=...`, or `SSH_TARGET=""` for a local
+  kubectl), asks every running container (gluetun and each app; the one-shot `transmission-seed`
+  is skipped) for its public IP via `https://api.ipify.org` (curl, else wget), and prints them
+  next to this machine's home public IP. Read-only.
+- Verdict: **OK** = every successful lookup shows the same IP and it is not the home IP (traffic
+  goes through the VPN). **LEAK** (exit 1) = a container is seen as the home IP. **WARN** (exit
+  2) = containers show different IPs, no lookup succeeded, or the home IP could not be fetched.
+- Argo CD only shows what is deployed and whether it is healthy; it cannot display live data like
+  the pod's public IP, so use this script for that.
+
 ### Transmission
 
 - https://transmission.homelab.lan (`apps/media/transmission.yaml`), LinuxServer image, web UI on
