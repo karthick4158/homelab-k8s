@@ -18,6 +18,8 @@ resources:
   - sonarr.yaml
   - seerr.yaml
   - gluetun-vpn.sops.yaml
+  # Rename-and-move CronJob; its script is generated below.
+  - mkv-rename.yaml
 
 # Gluetun VPN sidecar for Deployments labelled vpn=gluetun (only downloads.yaml);
 # see components/gluetun/README.md.
@@ -31,3 +33,7 @@ configMapGenerator:
       # Sonarr 8989, Seerr 5055, Transmission 9091. 9999 for kubelet probes
       # on gluetun.
       - FIREWALL_INPUT_PORTS=8080,7878,8989,5055,9091,9999
+  # Script for the mkv-rename CronJob (mkv-rename.yaml), versioned in Git.
+  - name: mkv-rename-script
+    files:
+      - mkv-rename.sh

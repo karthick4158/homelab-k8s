@@ -141,6 +141,29 @@ kubeadm init --pod-network-cidr=10.244.0.0/16 \
 - Radarr/Sonarr: Settings > Download Clients > add Transmission, host `localhost`, port `9091`
   (same pod), URL base `/transmission/`, plus the username/password once they are set.
 
+### Rename and move job (mkv-rename)
+
+- CronJob `mkv-rename` (`apps/media/mkv-rename.yaml`) runs `apps/media/mkv-rename.sh` (shipped
+  as a generated ConfigMap) every 5 minutes in a `busybox:1.37.0` pod as uid 1000 / gid 100, with
+  the library mounted at `/data` like qBittorrent. It renames each
+  `<anything> - Title (YYYY)<anything>.mkv` in `SOURCE_DIR` to `Title (YYYY).mkv` and moves it to
+  `TARGET_DIR`. It never overwrites (prints `Skipped, target exists`), leaves files modified in
+  the last 2 minutes alone (still being written) and skips names without a `(YYYY)` match
+  (`No match, skipped`). Only `.mkv` files directly in `SOURCE_DIR` are handled, not subfolders.
+- Set `SOURCE_DIR` and `TARGET_DIR` in `apps/media/mkv-rename.yaml` (the `value:` lines right
+  under lines 45 and 47, marked `# K: set these two paths`). Until neither contains `CHANGE_ME`,
+  every run fails with an error. A missing `SOURCE_DIR` also fails; `TARGET_DIR` is created.
+- Schedule `*/5 * * * *`, one run at a time (`concurrencyPolicy: Forbid`), no retries, a run is
+  killed after 30 minutes; the last 3 successful and 3 failed Jobs are kept.
+- Output: the Job's pod logs in Headlamp (namespace `media`), or
+  `kubectl -n media get jobs` then `kubectl -n media logs job/<name>`.
+- Run once now: `kubectl -n media create job --from=cronjob/mkv-rename mkv-rename-manual` (delete
+  it afterwards with `kubectl -n media delete job mkv-rename-manual` before reusing the name).
+- Pause: add `suspend: true` under `spec:` in `apps/media/mkv-rename.yaml`, commit and push
+  (Argo CD would revert a `kubectl patch`). Remove it to resume.
+- Alternative: Radarr/Sonarr can rename on import themselves (Settings > Media Management >
+  Rename Movies/Episodes), which makes this job unnecessary for anything they download.
+
 ## Updating images by hand
 
 - Versions live in the repo: container image tags in the `image:` lines under `apps/` and

@@ -1,0 +1,78 @@
+# mkv-rename: every 5 minutes, renames "<site> - Title (YYYY) <junk>.mkv" in
+# SOURCE_DIR to "Title (YYYY).mkv" and moves it to TARGET_DIR on the OMV
+# library. The script is apps/media/mkv-rename.sh (ConfigMap generated in
+# kustomization.yaml); see docs/cluster-setup.md.
+#
+# No pod-level securityContext/fsGroup: an fsGroup would chown the NFS
+# library (same reason as downloads.yaml). The library PV's nodeAffinity
+# already places the pod on k8s-worker-1.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: mkv-rename
+  namespace: media
+  labels:
+    app: mkv-rename
+spec:
+  schedule: "*/5 * * * *"
+  # Never two runs at once; a run still going skips the next slot.
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    metadata:
+      labels:
+        app: mkv-rename
+    spec:
+      # No retries: the next run is 5 minutes away anyway.
+      backoffLimit: 0
+      # Kill a stuck run (e.g. hung NFS) so Forbid does not block later runs.
+      activeDeadlineSeconds: 1800
+      template:
+        metadata:
+          labels:
+            app: mkv-rename
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: mkv-rename
+              image: busybox:1.37.0
+              command: [sh, /scripts/mkv-rename.sh]
+              env:
+                # K: set these two paths (library is mounted at /data, e.g.
+                # /data/data/downloads/qbittorrent/completed). The job fails
+                # with an error until neither contains CHANGE_ME.
+                - name: SOURCE_DIR
+                  value: "/data/CHANGE_ME/source"
+                - name: TARGET_DIR
+                  value: "/data/CHANGE_ME/target"
+              volumeMounts:
+                - name: script
+                  mountPath: /scripts
+                  readOnly: true
+                - name: library
+                  mountPath: /data
+              # Same user/group as the other apps on the library: OMV squashes
+              # root, PGID 100 is OMV's "users" group.
+              securityContext:
+                runAsNonRoot: true
+                runAsUser: 1000
+                runAsGroup: 100
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop: [ALL]
+                seccompProfile:
+                  type: RuntimeDefault
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 16Mi
+                limits:
+                  memory: 64Mi
+          volumes:
+            - name: script
+              configMap:
+                name: mkv-rename-script  # generated in kustomization.yaml
+            - name: library
+              persistentVolumeClaim:
+                claimName: library  # media-library.yaml
