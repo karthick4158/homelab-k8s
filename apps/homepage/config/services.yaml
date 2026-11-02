@@ -194,8 +194,3 @@
           type: homeassistant
           url: "{{HOMEPAGE_VAR_HA_URL}}"
           key: "{{HOMEPAGE_VAR_HA_TOKEN}}"
-    - Cricket:
-        icon: mdi-cricket
-        description: Team India alerts to Telegram
-        namespace: cricket
-        podSelector: app=cricket-notifier
