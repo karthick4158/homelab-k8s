@@ -48,6 +48,6 @@ sops:
             -----END AGE ENCRYPTED FILE-----
           recipient: age1tmzhe2zxesm02xf06al2hgml6tg5srw5ljr8ag9zm223jdswkgvq945ua9
     encrypted_regex: ^(data|stringData)$
-    lastmodified: "2026-11-02T17:34:05Z"
-    mac: ENC[AES256_GCM,data:EJHQjRJxgkzcHUtNcjiU/0nZ6zr9TWSJfyIxGV4AGqIwtFuuyfs7uJYlY8TOTKqxx19vFG+78Lq+znKeXJGpmKsYt9B6YMzFAQ8XFns66S1IaFpZB0pvoU9ZZq7JILMFMJExSUTf4tiPH2An7MMqP12ZWda1rXZnq0RKJ/cX6ok=,iv:4NFB4N28su3u5bSVoXR5ozhpQ/k1vOL0alyoXgkspyc=,tag:I1IZO4ax/9yFueUk1YnK/Q==,type:str]
+    lastmodified: "2026-11-02T17:38:57Z"
+    mac: ENC[AES256_GCM,data:uzHnppBbEDklyvWVqrZ3sRzwBx55P1lQLyOInHwd0bx6CF5VQPIbi6pwsuq1V1ANpQkppZX4WZQNQsU4ZoyhNiHNzR+5BGlOiRCD7CxcEalVufYYq+Ld1nMeh0bhiUrWPLBR2526JdssP5tP65O9ydKFAmWa78VONgR8kx7GRXI=,iv:4WhikoJQpvONDpLDaN7Lz5FrnIx3m1RgWG1Lk9Dk/6w=,tag:mKvdw31CTY6EtjW3um0/tA==,type:str]
     version: 3.13.3
