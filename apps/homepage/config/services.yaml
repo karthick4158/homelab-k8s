@@ -166,20 +166,20 @@
 - Network:
     - Pi-hole:
         icon: si-pihole
-        href: http://10.0.0.72/admin
+        href: http://10.0.0.82/admin
         description: DNS
         widget:
           type: pihole
-          url: http://10.0.0.72
+          url: http://10.0.0.82
           version: 6
           key: "{{HOMEPAGE_VAR_PIHOLE_KEY}}"
     - AdGuard Home:
         icon: si-adguard
-        href: http://10.0.0.82
+        href: http://10.0.0.72
         description: DNS
         widget:
           type: adguard
-          url: http://10.0.0.82
+          url: http://10.0.0.72
           username: "{{HOMEPAGE_VAR_ADGUARD_USER}}"
           password: "{{HOMEPAGE_VAR_ADGUARD_PASS}}"
 
