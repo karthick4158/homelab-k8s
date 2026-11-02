@@ -53,6 +53,9 @@ spec:
           ports:
             - name: http
               containerPort: 32400
+              # Direct access on the node's IP (Infuse on Apple TV).
+              hostPort: 32400
+              protocol: TCP
           volumeMounts:
             - name: config
               mountPath: /config
