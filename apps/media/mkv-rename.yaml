@@ -36,7 +36,7 @@ spec:
           restartPolicy: Never
           containers:
             - name: mkv-rename
-              image: busybox:1.37.0
+              image: busybox:1.38.0
               command: [sh, /scripts/mkv-rename.sh]
               env:
                 # K: set these two paths (library is mounted at /data, e.g.

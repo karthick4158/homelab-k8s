@@ -67,7 +67,7 @@ spec:
               memory: 64Mi
       containers:
         - name: qbittorrent
-          image: lscr.io/linuxserver/qbittorrent:5.3.0_v2.1.2-ls485
+          image: lscr.io/linuxserver/qbittorrent:5.3.0_v2.1.2-ls486
           env:
             # OMV squashes root, so writes go through the library's group:
             # PGID 100 is OMV's default "users" group (K to confirm with
@@ -160,7 +160,7 @@ spec:
               memory: 512Mi
 
         - name: radarr
-          image: lscr.io/linuxserver/radarr:6.4.4.10685-ls324
+          image: lscr.io/linuxserver/radarr:6.4.4.10685-ls325
           env:
             # Same user/group as qBittorrent (see above).
             - name: PUID
@@ -326,7 +326,7 @@ spec:
         # not block the whole pod; the script then logs "Telegram credentials
         # missing".
         - name: ip-notifier
-          image: python:3.13.9-slim
+          image: python:3.15.2-slim
           command: [python, /scripts/ip-notifier.py]
           env:
             - name: TELEGRAM_BOT_TOKEN
