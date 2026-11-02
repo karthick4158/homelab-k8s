@@ -44,7 +44,7 @@ spec:
       containers:
         - name: notifier
           # Pinned to the commit tag pushed by the GitHub Action (sha-<short>).
-          image: ghcr.io/karthick4158/sports_alerts:sha-71069e6
+          image: ghcr.io/karthick4158/cricket_scores:sha-71069e6
           envFrom:
             - configMapRef:
                 name: tennis-notifier-env  # generated in kustomization.yaml
