@@ -53,9 +53,6 @@ spec:
           ports:
             - name: http
               containerPort: 32400
-              # Direct access on the node's IP (Infuse on Apple TV).
-              hostPort: 32400
-              protocol: TCP
           volumeMounts:
             - name: config
               mountPath: /config
@@ -115,6 +112,23 @@ spec:
     - name: http
       port: 32400
       targetPort: http
+---
+# Exposes Plex on every node IP at :32400 (direct access for Infuse).
+apiVersion: v1
+kind: Service
+metadata:
+  name: plex-direct
+  namespace: media
+spec:
+  type: NodePort
+  selector:
+    app: plex
+  ports:
+    - name: plex
+      port: 32400
+      targetPort: http
+      nodePort: 32400
+      protocol: TCP
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
