@@ -24,6 +24,12 @@ spec:
                 name: gluetun-app     # per app: FIREWALL_INPUT_PORTS
             - secretRef:
                 name: gluetun-vpn     # per namespace: WireGuard key/address
+          # Single file (subPath) so the rest of /gluetun stays writable.
+          volumeMounts:
+            - name: gluetun-auth
+              mountPath: /gluetun/auth/config.toml
+              subPath: config.toml
+              readOnly: true
           startupProbe:
             httpGet:
               path: /
@@ -42,3 +48,7 @@ spec:
               memory: 64Mi
             limits:
               memory: 256Mi
+      volumes:
+        - name: gluetun-auth
+          configMap:
+            name: gluetun-auth  # generated in kustomization.yaml

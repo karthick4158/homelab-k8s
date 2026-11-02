@@ -16,6 +16,11 @@ configMapGenerator:
       - HEALTH_SERVER_ADDRESS=0.0.0.0:9999
       # VPN country (Surfshark's naming); change it here for every VPN app.
       - SERVER_COUNTRIES=France
+  # Control server auth (v3.40+): only GET /v1/publicip/ip is open, without a
+  # key, for the Homepage widget. Mounted by sidecar.yaml.
+  - name: gluetun-auth
+    files:
+      - config.toml=auth-config.toml
 
 patches:
   - path: sidecar.yaml

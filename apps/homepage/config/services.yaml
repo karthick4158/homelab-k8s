@@ -39,6 +39,17 @@
           key: "{{HOMEPAGE_VAR_SEERR_KEY}}"
 
 - Downloads:
+    # No key: gluetun's auth config (components/gluetun) leaves
+    # GET /v1/publicip/ip open.
+    - Gluetun:
+        icon: mdi-vpn
+        description: VPN
+        namespace: media
+        podSelector: app=downloads
+        widget:
+          type: gluetun
+          url: http://gluetun.media.svc.cluster.local:8000
+          version: 2
     - Radarr:
         icon: si-radarr
         href: https://radarr.homelab.lan
@@ -91,17 +102,6 @@
           url: http://transmission.media.svc.cluster.local:9091
           username: "{{HOMEPAGE_VAR_TRANSMISSION_USER}}"
           password: "{{HOMEPAGE_VAR_TRANSMISSION_PASS}}"
-    # TODO: Gluetun widget (public IP / country). Not usable yet: gluetun's
-    # control server (port 8000) is neither in FIREWALL_INPUT_PORTS nor
-    # behind a Service, and v3.40+ needs an auth config for it. Enabling it
-    # means changing apps/media, so it is left off.
-    # - Gluetun:
-    #     icon: mdi-vpn
-    #     widget:
-    #       type: gluetun
-    #       url: http://gluetun.media.svc.cluster.local:8000
-    #       key: "{{HOMEPAGE_VAR_GLUETUN_KEY}}"
-    #       version: 2
 
 - Infrastructure:
     - Argo CD:

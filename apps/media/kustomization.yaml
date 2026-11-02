@@ -33,8 +33,8 @@ configMapGenerator:
     literals:
       # Web UIs reached through Traefik: qBittorrent 8080, Radarr 7878,
       # Sonarr 8989, Seerr 5055, Transmission 9091, Prowlarr 9696. 9999 for kubelet probes
-      # on gluetun.
-      - FIREWALL_INPUT_PORTS=8080,7878,8989,5055,9091,9696,9999
+      # on gluetun, 8000 for gluetun's control server (Homepage widget).
+      - FIREWALL_INPUT_PORTS=8080,7878,8989,5055,9091,9696,9999,8000
   # Script for the mkv-rename CronJob (mkv-rename.yaml), versioned in Git.
   - name: mkv-rename-script
     files:
