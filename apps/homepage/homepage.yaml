@@ -62,11 +62,21 @@ spec:
             httpGet:
               path: /api/healthcheck
               port: http
+              # Homepage rejects Hosts not in HOMEPAGE_ALLOWED_HOSTS; the
+              # kubelet would otherwise send the pod IP.
+              httpHeaders:
+                - name: Host
+                  value: home.homelab.lan
             periodSeconds: 10
           livenessProbe:
             httpGet:
               path: /api/healthcheck
               port: http
+              # Homepage rejects Hosts not in HOMEPAGE_ALLOWED_HOSTS; the
+              # kubelet would otherwise send the pod IP.
+              httpHeaders:
+                - name: Host
+                  value: home.homelab.lan
             initialDelaySeconds: 30
             periodSeconds: 30
           resources:
