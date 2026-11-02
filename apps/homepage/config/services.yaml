@@ -175,11 +175,11 @@
           key: "{{HOMEPAGE_VAR_PIHOLE_KEY}}"
     - AdGuard Home:
         icon: si-adguard
-        href: http://10.0.0.72
+        href: http://10.0.0.72:83
         description: DNS
         widget:
           type: adguard
-          url: http://10.0.0.72
+          url: http://10.0.0.72:83
           username: "{{HOMEPAGE_VAR_ADGUARD_USER}}"
           password: "{{HOMEPAGE_VAR_ADGUARD_PASS}}"
 
