@@ -1,0 +1,14 @@
+# Overrides the empty argocd-cm from install.yaml. Adds a local API-key-only
+# account for the Homepage dashboard widget (no UI login). Its token is
+# generated out of band and never stored in Git.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-cm
+  labels:
+    app.kubernetes.io/name: argocd-cm
+    app.kubernetes.io/part-of: argocd
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+data:
+  accounts.homepage: apiKey

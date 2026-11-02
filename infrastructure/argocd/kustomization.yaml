@@ -6,4 +6,6 @@ namespace: argocd
 resources:
   - namespace.yaml
   - cmd-params.yaml
+  - argocd-cm.yaml
+  - argocd-rbac-cm.yaml
   - httproute.yaml

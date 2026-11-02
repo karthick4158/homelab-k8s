@@ -1,0 +1,14 @@
+# Overrides the empty argocd-rbac-cm from install.yaml. The homepage account
+# can only read; everything else keeps the built-in defaults.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-rbac-cm
+  labels:
+    app.kubernetes.io/name: argocd-rbac-cm
+    app.kubernetes.io/part-of: argocd
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+data:
+  policy.csv: |
+    g, homepage, role:readonly
