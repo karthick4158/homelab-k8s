@@ -1,0 +1,10 @@
+# https://gethomepage.dev/configs/bookmarks/
+- Code:
+    - homelab-k8s:
+        - abbr: HL
+          icon: si-github
+          href: https://github.com/karthick4158/homelab-k8s
+    - cricket_scores:
+        - abbr: CS
+          icon: si-github
+          href: https://github.com/karthick4158/cricket_scores

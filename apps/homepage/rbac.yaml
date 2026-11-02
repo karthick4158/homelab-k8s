@@ -1,0 +1,31 @@
+# Read-only cluster access for Homepage's Kubernetes widget (node/cluster
+# CPU and memory) and the per-service pod status dots. No Secrets.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: homepage
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: homepage-read
+rules:
+  - apiGroups: [""]
+    resources: [namespaces, pods, nodes]
+    verbs: [get, list]
+  - apiGroups: [metrics.k8s.io]
+    resources: [nodes, pods]
+    verbs: [get, list]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: homepage-read
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: homepage-read
+subjects:
+  - kind: ServiceAccount
+    name: homepage
+    namespace: homepage

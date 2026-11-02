@@ -1,0 +1,22 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Namespaced objects only; the ClusterRole/Binding in rbac.yaml keep none.
+namespace: homepage
+
+resources:
+  - namespace.yaml
+  - rbac.yaml
+  - homepage.yaml
+  # HOMEPAGE_VAR_* API keys and passwords used in config/*.yaml.
+  - homepage-keys.sops.yaml
+
+configMapGenerator:
+  # Homepage's config, versioned in Git; a change rolls the pod.
+  - name: homepage-config
+    files:
+      - config/settings.yaml
+      - config/services.yaml
+      - config/widgets.yaml
+      - config/bookmarks.yaml
+      - config/kubernetes.yaml

@@ -1,0 +1,31 @@
+# https://gethomepage.dev/configs/settings/
+title: Homelab
+theme: dark
+color: slate
+headerStyle: clean
+statusStyle: dot
+useEqualHeights: true
+hideVersion: true
+target: _blank
+
+layout:
+  Media:
+    style: row
+    columns: 3
+    icon: mdi-play-circle
+  Downloads:
+    style: row
+    columns: 3
+    icon: mdi-download
+  Infrastructure:
+    style: row
+    columns: 3
+    icon: mdi-kubernetes
+  Network:
+    style: row
+    columns: 2
+    icon: mdi-lan
+  Home:
+    style: row
+    columns: 3
+    icon: mdi-home-assistant

@@ -1,0 +1,39 @@
+# https://gethomepage.dev/widgets/  (info widgets in the header)
+- kubernetes:
+    cluster:
+      show: true
+      cpu: true
+      memory: true
+      showLabel: true
+      label: cluster
+    nodes:
+      show: true
+      cpu: true
+      memory: true
+      showLabel: true
+
+# CPU/memory of the Homepage container itself (not the nodes).
+- resources:
+    cpu: true
+    memory: true
+    label: homepage
+
+- search:
+    provider: duckduckgo
+    target: _blank
+
+- datetime:
+    text_size: md
+    format:
+      dateStyle: medium
+      timeStyle: short
+      hour12: false
+
+# Location lives in the Secret so it is not in Git.
+- openmeteo:
+    label: Weather
+    latitude: {{HOMEPAGE_VAR_LATITUDE}}
+    longitude: {{HOMEPAGE_VAR_LONGITUDE}}
+    timezone: America/Chicago
+    units: metric
+    cache: 15

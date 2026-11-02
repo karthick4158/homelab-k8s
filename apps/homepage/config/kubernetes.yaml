@@ -1,0 +1,4 @@
+# https://gethomepage.dev/configs/kubernetes/
+# In-cluster: uses the homepage ServiceAccount (rbac.yaml). Services are
+# listed by hand in services.yaml, not auto-discovered.
+mode: cluster
