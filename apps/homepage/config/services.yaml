@@ -132,12 +132,12 @@
         widget:
           type: prometheus
           url: http://monitoring-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090
-    - Headlamp:
-        icon: mdi-kubernetes
-        href: https://headlamp.homelab.lan
-        description: Kubernetes UI
-        namespace: headlamp
-        podSelector: app.kubernetes.io/name=headlamp
+    - Dozzle:
+        icon: dozzle
+        href: https://dozzle.homelab.lan
+        description: Live logs
+        namespace: dozzle
+        podSelector: app=dozzle
     - Traefik:
         icon: si-traefikproxy
         description: Gateway on 10.0.0.89 (dashboard off, API firewalled)

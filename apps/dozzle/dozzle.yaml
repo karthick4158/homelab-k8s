@@ -1,0 +1,81 @@
+# Dozzle log viewer (dozzle.dev) at dozzle.homelab.lan, in Kubernetes mode:
+# it reads pod logs through the API with the read-only dozzle ServiceAccount.
+# No login.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dozzle
+  labels:
+    app: dozzle
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dozzle
+  template:
+    metadata:
+      labels:
+        app: dozzle
+    spec:
+      serviceAccountName: dozzle  # rbac.yaml
+      containers:
+        - name: dozzle
+          image: amir20/dozzle:latest  # pin to a version once scripts/check-updates.sh has run
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: DOZZLE_MODE
+              value: k8s
+            - name: DOZZLE_NO_ANALYTICS
+              value: "true"
+          readinessProbe:
+            httpGet:
+              path: /healthcheck
+              port: http
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthcheck
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 20m
+              memory: 64Mi
+            limits:
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dozzle
+spec:
+  selector:
+    app: dozzle
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: dozzle
+spec:
+  parentRefs:
+    - name: traefik-gateway
+      namespace: traefik
+      sectionName: web
+    - name: traefik-gateway
+      namespace: traefik
+      sectionName: websecure
+  hostnames:
+    - dozzle.homelab.lan
+  rules:
+    - backendRefs:
+        - name: dozzle
+          port: 8080
