@@ -11,10 +11,10 @@
 - Media Links:
     - FMovies:
         - abbr: FM
-          icon: si-movies
+          icon: mdi-movie
           href: https://ww.fmoviess.org/home/
     - MovieRulz:
         - abbr: Tamil
-          icon: si-movies
+          icon: mdi-movie
           href: https://www.5movierulz.financial/category/tamil-featured
     
