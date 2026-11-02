@@ -1,0 +1,28 @@
+# Pull secret for the private ghcr.io/karthick4158/cricket_scores image.
+# K: fill in with `sops set` (value below is a placeholder).
+apiVersion: isindir.github.com/v1alpha3
+kind: SopsSecret
+metadata:
+    name: ghcr-pull
+    namespace: cricket
+spec:
+    secretTemplates:
+        - name: ghcr-pull
+          type: kubernetes.io/dockerconfigjson
+          stringData:
+            .dockerconfigjson: ENC[AES256_GCM,data:4c1pRbrifVDDg0vlmN8Egx57eka2du0eWqqTw3AxP9lmkCLemPUidaW0afbuSs9MT8mp7nALLYRwBwVoZDbNT0n/1NyGwnSo2sFQdXeryBRqJ6dUZY2onE6aX0InmQlGY9fjl3xyi3KV,iv:2YFmLQ1dXUMV9170tRKHh3Zbb7R9goxT3+8azwMmlUo=,tag:2HJRTUZGp/2sa2ltBbBU5A==,type:str]
+sops:
+    age:
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBzUmgzSHR4cXFuczl3cTdX
+            ZFc3M2U1bE1IQjk3Rm1CSE5JMHZ6enVQckRFClc4bWVlejZEc2d5RjlVZmtLZXZm
+            R0tlajVsTnlldmQ0YWhqZHNuY3MwTW8KLS0tIDhVUzRuKzF3bWM3V3NOMm1xYlMv
+            bDgxVFJjOEVBTkdtMndHRzFoSElBUFkKd5jN3Uff2cRmjqa1GQ2HtQjVNQYCH74O
+            SfV/KG/H2/wx38SS+KVZDJP0WBSj3LyCmzfTwWlFwaVsrgfg6Ki+SQ==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age1tmzhe2zxesm02xf06al2hgml6tg5srw5ljr8ag9zm223jdswkgvq945ua9
+    encrypted_regex: ^(data|stringData)$
+    lastmodified: "2026-11-02T00:21:20Z"
+    mac: ENC[AES256_GCM,data:mI5Jff2/HE9Y9beTgVkwq49MLmUcklGpMJGVzsSSqWV8z0nZVBSX/3aWCUYKcT6LoJVuREEtFzgeBP2agi8vvfB+11/rzj1HWOOqp0dgM8MZCs+uusEg7yTieX4rHVVs57/dLkq0aDi3a3o8vbSPsOAvPRdoQ0T4wRT6OBsLDoc=,iv:HID2QhMnFoH9mmdLzAeLWh+cyNAKhMyNvUy1OAO7Rbw=,tag:iI9KYMKIUJTTxteNX9vgSQ==,type:str]
+    version: 3.13.3

@@ -36,6 +36,9 @@ spec:
       labels:
         app: cricket-notifier
     spec:
+      # Private GHCR image; dockerconfigjson from ghcr-pull.sops.yaml.
+      imagePullSecrets:
+        - name: ghcr-pull
       securityContext:
         fsGroup: 1000
       containers:
