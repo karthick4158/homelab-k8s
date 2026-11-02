@@ -58,6 +58,10 @@ spec:
               mountPath: /app/config/kubernetes.yaml
               subPath: kubernetes.yaml
               readOnly: true
+            - name: config-files
+              mountPath: /app/config/custom.css
+              subPath: custom.css
+              readOnly: true
           readinessProbe:
             httpGet:
               path: /api/healthcheck
