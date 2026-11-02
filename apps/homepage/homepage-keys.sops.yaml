@@ -16,8 +16,8 @@ spec:
             HOMEPAGE_VAR_ARGOCD_TOKEN: ENC[AES256_GCM,data:pXnoLGbrzyVL,iv:HT61hnftOWTtQJGx6SpwZRNVPMz68tg8dr43Idr5uok=,tag:8kR+SV166PhgvMgk7DyDcg==,type:str]
             HOMEPAGE_VAR_GRAFANA_PASS: ENC[AES256_GCM,data:yBMz45pT7ZyT,iv:wTyjal5ow8Zo+cMiaKZiLwI/GDrj9kwWz2AgCIh5JfY=,tag:J/6WYThhJ+xRyCqOUTaY7g==,type:str]
             HOMEPAGE_VAR_GRAFANA_USER: ENC[AES256_GCM,data:en6C1Qw=,iv:brENiToJWS9v4vUyjw/ntJwE0v8dpFN2XEXqLPW9kvU=,tag:dQ5x2A8W8LIPqWQZ535Dlw==,type:str]
-            HOMEPAGE_VAR_HA_TOKEN: ENC[AES256_GCM,data:v1e0BrwF+gS/,iv:OknwJx+SEq2v+iU/4O+aCWPX4omH9IZJyligBSoPQQ8=,tag:ztQfv1PzMzEBC2fQdmaTlA==,type:str]
-            HOMEPAGE_VAR_HA_URL: ENC[AES256_GCM,data:+ZoLXmKYuF/q,iv:lrIjJVq5UOdP45Hi2P03b1wtr0epnD+5mIr5j39oG7g=,tag:Wluq6KdPv7KgIfgAEPR6rw==,type:str]
+            HOMEPAGE_VAR_HA_TOKEN: ENC[AES256_GCM,data:5+QKa7hUJmPc8qn2XUEvr8CCg5ugJEpXvSZLz0mGgv+Iem2k7OaQuOnU+mJzCjWAchy6djNOM0Qo+sy5twxfPejaBPazPu50vtZBOve1vSpT0Z3Mztj/KpHS6PbkZ1wo6g914uaigp26UHWlVJJ5kYP24/o9WP4qgwW5yuLZgNK6GHWmQuZtPzZmxV42zUf/Z+yVegNMrA7VDeMXILxoA5HLyiFrytqWJIKUTCiQ4b+Y4D8MEOFb,iv:B50gjLEgUZ5XdAgpU/EjQYFv6znxTan/J+XXzUcrsvc=,tag:Jm5aEbqQEf6yWbCz6mWZTQ==,type:str]
+            HOMEPAGE_VAR_HA_URL: ENC[AES256_GCM,data:6iSwpuinmhhw6jXHUiopgo6nNLxf,iv:pUrf4F7yjGmF0EiVuxLSmxkcZXCihBYA58kI4hs4tE4=,tag:ULwZiZfpJ0YOUf5z82sDeA==,type:str]
             HOMEPAGE_VAR_JELLYFIN_KEY: ENC[AES256_GCM,data:bk6wz6MNoTXyJP1KIjMUVLnOFqY6MqXnIJ+rZTlAIO0=,iv:gxCqsdau8OidDi2q3ELyeNVm7jPM9FwzppX+3ObjuMM=,tag:6vTQn0jYXIcNVEGZUrnHlA==,type:str]
             HOMEPAGE_VAR_LATITUDE: ENC[AES256_GCM,data:72TKcYgyXtfw,iv:rutAjur3fRkZrfL3skmqnP8cooW2SB2N9VM9ky/vwF8=,tag:UGeKQb8MoVgV4GBIbqTdoQ==,type:str]
             HOMEPAGE_VAR_LONGITUDE: ENC[AES256_GCM,data:3JPUDwI/9+sw5g==,iv:A1D6CHvpFKxYvN+TjB1u8+s3i1fZDaDRsBBPQ3sCU6Q=,tag:jEKhOsMyOgAkEGntdQ48yg==,type:str]
@@ -48,6 +48,6 @@ sops:
             -----END AGE ENCRYPTED FILE-----
           recipient: age1tmzhe2zxesm02xf06al2hgml6tg5srw5ljr8ag9zm223jdswkgvq945ua9
     encrypted_regex: ^(data|stringData)$
-    lastmodified: "2026-11-02T17:38:57Z"
-    mac: ENC[AES256_GCM,data:uzHnppBbEDklyvWVqrZ3sRzwBx55P1lQLyOInHwd0bx6CF5VQPIbi6pwsuq1V1ANpQkppZX4WZQNQsU4ZoyhNiHNzR+5BGlOiRCD7CxcEalVufYYq+Ld1nMeh0bhiUrWPLBR2526JdssP5tP65O9ydKFAmWa78VONgR8kx7GRXI=,iv:4WhikoJQpvONDpLDaN7Lz5FrnIx3m1RgWG1Lk9Dk/6w=,tag:mKvdw31CTY6EtjW3um0/tA==,type:str]
+    lastmodified: "2026-11-02T17:51:26Z"
+    mac: ENC[AES256_GCM,data:vf5YgVSccFAy4AhaloOLi+fwMaL1JlfzNAtR5hXrs5QhWhY35J8PArkhdoj+SGAN6DOmQGu1FCfg828+nPU3yv7mtdCO31l6cTwzjK56S+YmO9AaOI/NfozQ13fbdeJZhMtpfk9PinYeZ9YGzhcM6t1nDd3fy2K3uzPstYGDTIw=,iv:8w3B+cpyQgKsG+ELEMfi/MgQ/v47YWAJTpVuWUgPU+M=,tag:Ie3Q67AJ6O/Zyqd0NfAuzA==,type:str]
     version: 3.13.3
