@@ -1,0 +1,19 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Shares the cricket namespace (and its secrets); namespace.yaml and the
+# sops secrets are owned by apps/cricket.
+namespace: cricket
+
+resources:
+  - tennis-notifier.yaml
+
+configMapGenerator:
+  # Non-secret settings; anything unset uses the app's default (see
+  # .env.example in github.com/karthick4158/sports_alerts).
+  - name: tennis-notifier-env
+    literals:
+      - SPORT=tennis
+      - TZ=America/Chicago
+      - STATE_PATH=/data/tennis_state.json
+      - LOG_LEVEL=INFO

@@ -1,0 +1,19 @@
+# Tennis Telegram notifier (apps/tennis), in the cricket namespace.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: tennis
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:karthick4158/homelab-k8s.git
+    targetRevision: main
+    path: apps/tennis
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: cricket
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

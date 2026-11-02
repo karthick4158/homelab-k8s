@@ -1,0 +1,102 @@
+# Tennis notifier: same image as cricket (github.com/karthick4158/sports_alerts,
+# formerly cricket_scores) run with SPORT=tennis. Polls ESPN's public tennis
+# scoreboard and sends Slam / 1000 / Finals singles alerts to the same Telegram
+# chat. Lives in the cricket namespace so it reuses the cricket-telegram and
+# ghcr-pull secrets from apps/cricket (no new sops files). Outbound HTTPS only
+# (site.api.espn.com, api.telegram.org).
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: tennis-data
+  namespace: cricket
+spec:
+  accessModes: [ReadWriteOnce]
+  # No storageClassName: uses the default (local-path).
+  resources:
+    requests:
+      storage: 64Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tennis-notifier
+  namespace: cricket
+  labels:
+    app: tennis-notifier
+spec:
+  replicas: 1
+  # RWO volume, and two copies would send every alert twice.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: tennis-notifier
+  template:
+    metadata:
+      labels:
+        app: tennis-notifier
+    spec:
+      # Reuses the cricket namespace's ghcr-pull secret (apps/cricket).
+      imagePullSecrets:
+        - name: ghcr-pull
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: notifier
+          # Pinned to the commit tag pushed by the GitHub Action (sha-<short>).
+          image: ghcr.io/karthick4158/sports_alerts:sha-REPLACE
+          envFrom:
+            - configMapRef:
+                name: tennis-notifier-env  # generated in kustomization.yaml
+          env:
+            # Same bot and chat as cricket: reuses the cricket-telegram secret.
+            - name: TELEGRAM_BOT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: cricket-telegram
+                  key: bot-token
+            - name: TELEGRAM_CHAT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: cricket-telegram
+                  key: chat-id
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: tmp
+              mountPath: /tmp
+          # Same check as the image's HEALTHCHECK: the main loop touches
+          # /data/heartbeat at least once a minute.
+          livenessProbe:
+            exec:
+              command:
+                - python
+                - -c
+                - "import os,sys,time; sys.exit(0 if time.time()-os.path.getmtime('/data/heartbeat')<900 else 1)"
+            initialDelaySeconds: 60
+            periodSeconds: 60
+            timeoutSeconds: 5
+            failureThreshold: 3
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+            seccompProfile:
+              type: RuntimeDefault
+          resources:
+            requests:
+              cpu: 20m
+              memory: 64Mi
+            limits:
+              memory: 256Mi
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: tennis-data
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi
