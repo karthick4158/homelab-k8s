@@ -12,12 +12,6 @@
       memory: true
       showLabel: true
 
-# CPU/memory of the Homepage container itself (not the nodes).
-- resources:
-    cpu: true
-    memory: true
-    label: homepage
-
 - search:
     provider: duckduckgo
     target: _blank
