@@ -1,41 +1,74 @@
-:root {
+/* Palette: Homepage colours everything through these variables */
+html[class] {
+  --color-50: 241 245 255;
+  --color-100: 226 232 248;
+  --color-200: 203 213 240;
+  --color-300: 160 172 205;
+  --color-400: 120 132 170;
+  --color-500: 90 101 140;
+  --color-600: 45 52 84;
+  --color-700: 26 31 52;
+  --color-800: 12 15 28;
+  --color-900: 6 8 16;
+  --color-950: 3 4 9;
   --h-accent: #8b5cf6;
   --h-accent2: #22d3ee;
-  --h-glass: rgba(255,255,255,0.045);
-  --h-border: rgba(255,255,255,0.09);
+  --h-glass: rgba(255, 255, 255, 0.05);
+  --h-glass-strong: rgba(255, 255, 255, 0.075);
+  --h-border: rgba(255, 255, 255, 0.10);
+  color-scheme: dark;
 }
 
-html, body {
+html { background: #060810 !important; }
+body, #__next, #page_wrapper { background: transparent !important; }
+
+#inner_wrapper {
   background:
-    radial-gradient(1200px 700px at 12% -10%, rgba(139,92,246,0.22), transparent 60%),
-    radial-gradient(1000px 600px at 95% 5%, rgba(34,211,238,0.14), transparent 55%),
-    #070a12 !important;
-  background-attachment: fixed !important;
+    radial-gradient(1100px 650px at 10% -8%, rgba(139, 92, 246, 0.30), transparent 60%),
+    radial-gradient(900px 600px at 98% 2%, rgba(34, 211, 238, 0.18), transparent 55%),
+    radial-gradient(900px 700px at 50% 115%, rgba(99, 102, 241, 0.16), transparent 60%),
+    #060810 !important;
   font-family: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
-#page_container, #inner_wrapper, #page_wrapper {
-  background: transparent !important;
-}
-
-#information-widgets {
-  padding: 6px 4px;
-}
-
-#information-widgets > div,
-.information-widget-resource,
+/* Glass surfaces: service cards, bookmarks and the top widgets */
+.service-card,
+.service > div,
+.bookmark > div,
 .information-widget-search,
-.information-widget-openmeteo {
-  background: var(--h-glass) !important;
-  border: 1px solid var(--h-border);
-  border-radius: 14px;
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+.information-widget-openmeteo,
+.information-widget-datetime,
+.information-widget-kubernetes,
+.information-widget-resource,
+.information-widget-greeting {
+  background-color: var(--h-glass) !important;
+  border: 1px solid var(--h-border) !important;
+  border-radius: 16px !important;
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.40), inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
-.service-group-name, .bookmark-group-name {
+/* Inner stat boxes inside cards */
+.service-block,
+.service-card .bg-theme-200\/50,
+.service-card [class*="bg-theme-"] {
+  background-color: rgba(255, 255, 255, 0.04) !important;
+  border-radius: 10px !important;
+}
+
+.service, .bookmark { transition: transform 0.18s ease; }
+.service:hover, .bookmark:hover { transform: translateY(-3px); }
+.service:hover > div, .bookmark:hover > div {
+  border-color: rgba(139, 92, 246, 0.65) !important;
+  background-color: var(--h-glass-strong) !important;
+  box-shadow: 0 12px 36px rgba(139, 92, 246, 0.28), 0 0 0 1px rgba(34, 211, 238, 0.25);
+}
+
+.service-group-name,
+.bookmark-group-name {
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   font-size: 0.78rem;
   background: linear-gradient(90deg, var(--h-accent), var(--h-accent2));
@@ -44,49 +77,9 @@ html, body {
   color: transparent !important;
 }
 
-#services .service, #bookmarks .bookmark {
-  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
-}
+.service-name, .bookmark-text { font-weight: 600; letter-spacing: 0.01em; }
+.service-description { opacity: 0.6; font-size: 0.78rem; }
+.service-icon img, .service-icon svg { filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.5)); }
 
-#services .service > div,
-#services .service-card,
-#bookmarks .bookmark > div {
-  background: var(--h-glass) !important;
-  border: 1px solid var(--h-border) !important;
-  border-radius: 14px !important;
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  box-shadow: 0 6px 24px rgba(0,0,0,0.35);
-}
-
-#services .service:hover, #bookmarks .bookmark:hover {
-  transform: translateY(-3px);
-}
-
-#services .service:hover > div, #bookmarks .bookmark:hover > div {
-  border-color: rgba(139,92,246,0.65) !important;
-  box-shadow: 0 10px 34px rgba(139,92,246,0.25), 0 0 0 1px rgba(34,211,238,0.25);
-}
-
-.service-name, .bookmark-text {
-  font-weight: 600;
-  letter-spacing: 0.01em;
-}
-
-.service-description {
-  opacity: 0.6;
-  font-size: 0.78rem;
-}
-
-.service-icon img, .service-icon svg {
-  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5));
-}
-
-::-webkit-scrollbar {
-  width: 8px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,0.15);
-  border-radius: 8px;
-}
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 8px; }
