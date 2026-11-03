@@ -21,3 +21,4 @@ configMapGenerator:
       - config/bookmarks.yaml
       - config/kubernetes.yaml
       - config/custom.css
+      - config/bg.jpg

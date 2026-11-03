@@ -62,6 +62,10 @@ spec:
               mountPath: /app/config/custom.css
               subPath: custom.css
               readOnly: true
+            - name: config-files
+              mountPath: /app/public/images/bg.jpg
+              subPath: bg.jpg
+              readOnly: true
           readinessProbe:
             httpGet:
               path: /api/healthcheck
