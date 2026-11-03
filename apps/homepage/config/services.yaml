@@ -132,6 +132,15 @@
         widget:
           type: prometheus
           url: http://monitoring-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090
+    - Proxmox:
+        icon: si-proxmox
+        href: https://10.0.0.66:8006
+        description: Hypervisor
+        widget:
+          type: proxmox
+          url: https://10.0.0.66:8006
+          username: "{{HOMEPAGE_VAR_PROXMOX_TOKEN_ID}}"
+          password: "{{HOMEPAGE_VAR_PROXMOX_TOKEN_SECRET}}"
     - Dozzle:
         icon: dozzle
         href: https://dozzle.homelab.lan
@@ -143,15 +152,7 @@
         description: Gateway on 10.0.0.89 (dashboard off, API firewalled)
         namespace: traefik
         podSelector: app.kubernetes.io/name=traefik
-    - Proxmox:
-        icon: si-proxmox
-        href: https://10.0.0.66:8006
-        description: Hypervisor
-        widget:
-          type: proxmox
-          url: https://10.0.0.66:8006
-          username: "{{HOMEPAGE_VAR_PROXMOX_TOKEN_ID}}"
-          password: "{{HOMEPAGE_VAR_PROXMOX_TOKEN_SECRET}}"
+    
     - OpenMediaVault:
         icon: mdi-nas
         href: http://10.0.0.65
