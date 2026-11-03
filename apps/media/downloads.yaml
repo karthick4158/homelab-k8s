@@ -41,7 +41,7 @@ spec:
         # Transmission to create. Needs no network (kustomize puts it after
         # the gluetun sidecar, so it starts once the VPN is up).
         - name: transmission-seed
-          image: lscr.io/linuxserver/transmission:4.1.4-r0-ls367
+          image: lscr.io/linuxserver/transmission:4.1.4-r0-ls368
           command:
             - sh
             - -c
