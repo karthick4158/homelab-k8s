@@ -141,18 +141,7 @@
           url: https://10.0.0.66:8006
           username: "{{HOMEPAGE_VAR_PROXMOX_TOKEN_ID}}"
           password: "{{HOMEPAGE_VAR_PROXMOX_TOKEN_SECRET}}"
-    - Dozzle:
-        icon: dozzle
-        href: https://dozzle.homelab.lan
-        description: Live logs
-        namespace: dozzle
-        podSelector: app=dozzle
-    # - Traefik:
-    #     icon: si-traefikproxy
-    #     description: Gateway on 10.0.0.89 (dashboard off, API firewalled)
-    #     namespace: traefik
-    #     podSelector: app.kubernetes.io/name=traefik
-    
+
     - OpenMediaVault:
         icon: mdi-nas
         href: http://10.0.0.65
@@ -163,6 +152,13 @@
           username: "{{HOMEPAGE_VAR_OMV_USER}}"
           password: "{{HOMEPAGE_VAR_OMV_PASS}}"
           method: services.getStatus
+
+    - Dozzle:
+        icon: dozzle
+        href: https://dozzle.homelab.lan
+        description: Live logs
+        namespace: dozzle
+        podSelector: app=dozzle
 
 - Network:
     - Pi-hole:
