@@ -4,7 +4,7 @@ theme: dark
 color: slate
 headerStyle: clean
 statusStyle: dot
-useEqualHeights: true
+useEqualHeights: false
 hideVersion: true
 target: _blank
 
