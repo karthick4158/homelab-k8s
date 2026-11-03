@@ -116,7 +116,7 @@ spec:
               memory: 1Gi
 
         - name: transmission
-          image: lscr.io/linuxserver/transmission:4.1.4-r0-ls367
+          image: lscr.io/linuxserver/transmission:4.1.4-r0-ls368
           env:
             # Same user/group as qBittorrent (see above).
             - name: PUID
