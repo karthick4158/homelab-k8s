@@ -181,10 +181,14 @@ kubeadm init --pod-network-cidr=10.244.0.0/16 \
 
 - Versions live in the repo: container image tags in the `image:` lines under `apps/` and
   `components/`, Helm chart versions in `targetRevision` in `argocd-apps/*.yaml`.
-- Run `scripts/check-updates.sh` from the Mac. It is read-only (asks public registries only, never
-  the cluster) and prints pinned vs newest version per image and chart; `?` means the lookup failed.
-- Read the release notes, then edit the tag/`targetRevision`. One app per commit, e.g.
-  `git commit -m "Bump radarr to 6.4.5.x-ls322"`, then `git push`; Argo CD syncs it.
+- Run `scripts/check-updates.sh --dry-run` from the Mac to only list what is outdated (asks public
+  registries and Helm repo indexes, never the cluster). Images on `latest`, digest-pinned or in the
+  private `ghcr.io/karthick4158/` registry are listed as skipped.
+- Run `scripts/check-updates.sh` to apply updates: it prints a numbered table (`!! major` = major
+  jump, `careful` = gluetun/plex/argo-cd/traefik/kube-prometheus-stack), asks which numbers to
+  apply (`a` = all non-major, `q` = quit), edits the files, shows the diff, then asks `Commit?`
+  (one commit per app, `<app>: update <old> -> <new>`) and `Push now?`. Argo CD only syncs after
+  the push. Read the release notes before picking anything marked major or careful.
 - Roll back: `git revert <commit>` and push.
 
 ## Open items
