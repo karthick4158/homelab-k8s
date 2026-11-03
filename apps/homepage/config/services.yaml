@@ -147,11 +147,11 @@
         description: Live logs
         namespace: dozzle
         podSelector: app=dozzle
-    - Traefik:
-        icon: si-traefikproxy
-        description: Gateway on 10.0.0.89 (dashboard off, API firewalled)
-        namespace: traefik
-        podSelector: app.kubernetes.io/name=traefik
+    # - Traefik:
+    #     icon: si-traefikproxy
+    #     description: Gateway on 10.0.0.89 (dashboard off, API firewalled)
+    #     namespace: traefik
+    #     podSelector: app.kubernetes.io/name=traefik
     
     - OpenMediaVault:
         icon: mdi-nas
