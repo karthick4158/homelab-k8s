@@ -83,3 +83,7 @@ body, #__next, #page_wrapper { background: transparent !important; }
 
 ::-webkit-scrollbar { width: 8px; }
 ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 8px; }
+
+/* every card fills its slot, so cards in a row match heights */
+.services-list { align-items: stretch; }
+.service, .service > div { height: 100%; }
