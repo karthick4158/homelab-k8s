@@ -1,0 +1,19 @@
+# ESPHome dashboard at esphome.homelab.lan (apps/esphome).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: esphome
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:karthick4158/homelab-k8s.git
+    targetRevision: main
+    path: apps/esphome
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: esphome
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

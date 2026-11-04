@@ -211,3 +211,9 @@
           type: homeassistant
           url: "{{HOMEPAGE_VAR_HA_URL}}"
           key: "{{HOMEPAGE_VAR_HA_TOKEN}}"
+    - ESPHome:
+        icon: esphome
+        href: https://esphome.homelab.lan
+        description: Device firmware (cluster instance)
+        namespace: esphome
+        podSelector: app=esphome

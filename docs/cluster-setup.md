@@ -202,6 +202,15 @@ kubeadm init --pod-network-cidr=10.244.0.0/16 \
   (`corentinth/it-tools`) at it-tools.homelab.lan. Manifests in `apps/omni-tools/` and
   `apps/it-tools/`, Argo apps in `argocd-apps/`, cards in the Homepage "Tools" group.
 
+## ESPHome
+
+- Dashboard at esphome.homelab.lan (`apps/esphome/`, Argo app `argocd-apps/esphome.yaml`, card in
+  the Homepage "Home" group). This is a second ESPHome instance; the one on VM 101 is untouched.
+- Pods can't use mDNS, so devices must be reached by IP (give them static IPs / DHCP reservations)
+  for OTA and status. `ESPHOME_DASHBOARD_USE_PING=true` makes status use ping instead of mDNS.
+- Config lives in the `esphome-config` PVC (2Gi, local-path) at `/config`. The old config from
+  VM 101 can be copied in later (`kubectl cp`) by K.
+
 ## Updating images by hand
 
 - Versions live in the repo: container image tags in the `image:` lines under `apps/` and

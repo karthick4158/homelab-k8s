@@ -1,0 +1,103 @@
+# ESPHome dashboard at esphome.homelab.lan. Second instance; the one on VM 101 is untouched.
+# No mDNS in pods: devices are reached by IP for OTA. Config lives in the esphome-config PVC.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: esphome-config
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: esphome
+  labels:
+    app: esphome
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate  # RWO volume
+  selector:
+    matchLabels:
+      app: esphome
+  template:
+    metadata:
+      labels:
+        app: esphome
+    spec:
+      containers:
+        - name: esphome
+          image: ghcr.io/esphome/esphome:2026.10.2
+          ports:
+            - name: http
+              containerPort: 6052
+          env:
+            - name: ESPHOME_DASHBOARD_USE_PING
+              value: "true"
+            - name: TZ
+              value: America/Chicago
+          startupProbe:
+            httpGet:
+              path: /
+              port: http
+            periodSeconds: 10
+            failureThreshold: 30  # up to 5 min on first start
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            periodSeconds: 30
+            timeoutSeconds: 5
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 1Gi  # firmware compiles are heavy
+          volumeMounts:
+            - name: config
+              mountPath: /config
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: esphome-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: esphome
+spec:
+  selector:
+    app: esphome
+  ports:
+    - name: http
+      port: 6052
+      targetPort: http
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: esphome
+spec:
+  parentRefs:
+    - name: traefik-gateway
+      namespace: traefik
+      sectionName: web
+    - name: traefik-gateway
+      namespace: traefik
+      sectionName: websecure
+  hostnames:
+    - esphome.homelab.lan
+  rules:
+    - backendRefs:
+        - name: esphome
+          port: 6052
