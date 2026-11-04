@@ -18,3 +18,8 @@
           icon: mdi-movie
           href: https://www.5movierulz.financial/category/tamil-featured
     
+- Media Tools:
+    - Profilarr:
+        - abbr: PRF
+          icon: mdi-movie
+          href: https://profilarr.homelab.lan

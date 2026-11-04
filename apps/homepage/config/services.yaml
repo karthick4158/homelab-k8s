@@ -80,12 +80,12 @@
           type: prowlarr
           url: http://prowlarr.media.svc.cluster.local:9696
           key: "{{HOMEPAGE_VAR_PROWLARR_KEY}}"
-    - Profilarr:
-        icon: mdi-tune
-        href: https://profilarr.homelab.lan
-        description: Quality profiles
-        namespace: media
-        podSelector: app=downloads
+    # - Profilarr:
+    #     icon: mdi-tune
+    #     href: https://profilarr.homelab.lan
+    #     description: Quality profiles
+    #     namespace: media
+    #     podSelector: app=downloads
     - qBittorrent:
         icon: si-qbittorrent
         href: https://qbit.homelab.lan
