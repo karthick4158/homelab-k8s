@@ -1,0 +1,47 @@
+# Profilarr, reached via traefik-gateway at profilarr.homelab.lan (http and
+# https). Its container runs in the shared VPN pod (downloads.yaml); this file
+# holds its config volume, Service and route.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: profilarr-config
+  namespace: media
+spec:
+  accessModes: [ReadWriteOnce]
+  # No storageClassName: uses the default (local-path).
+  resources:
+    requests:
+      storage: 500Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: profilarr
+  namespace: media
+spec:
+  selector:
+    app: downloads  # the shared pod in downloads.yaml
+  ports:
+    - name: http
+      port: 6868
+      targetPort: profilarr  # this app's container port
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: profilarr
+  namespace: media
+spec:
+  parentRefs:
+    - name: traefik-gateway
+      namespace: traefik
+      sectionName: web
+    - name: traefik-gateway
+      namespace: traefik
+      sectionName: websecure
+  hostnames:
+    - profilarr.homelab.lan
+  rules:
+    - backendRefs:
+        - name: profilarr
+          port: 6868

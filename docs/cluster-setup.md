@@ -154,6 +154,14 @@ kubeadm init --pod-network-cidr=10.244.0.0/16 \
 - Radarr/Sonarr: Settings > Download Clients > add Transmission, host `localhost`, port `9091`
   (same pod), URL base `/transmission/`, plus the username/password once they are set.
 
+### Profilarr
+
+- https://profilarr.homelab.lan (`apps/media/profilarr.yaml`), syncs quality profiles and custom
+  formats to Radarr/Sonarr. Image `santiagosayshey/profilarr:v1.1.5`, web UI on 6868 (listed in
+  `FIREWALL_INPUT_PORTS`), config on the 500Mi local-path PVC `profilarr-config`. Same pod, so it
+  reaches Radarr at `localhost:7878` and Sonarr at `localhost:8989`. Needs a DNS record
+  `profilarr.homelab.lan -> 10.0.0.89` in Pi-hole and AdGuard.
+
 ### Rename and move job (mkv-rename)
 
 - CronJob `mkv-rename` (`apps/media/mkv-rename.yaml`) runs `apps/media/mkv-rename.sh` (shipped
