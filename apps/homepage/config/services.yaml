@@ -217,3 +217,8 @@
         description: Device firmware (cluster instance)
         namespace: esphome
         podSelector: app=esphome
+        # No auth on the dashboard. offline_alt counts unknown devices as offline.
+        widget:
+          type: esphome
+          url: http://esphome.esphome.svc.cluster.local:6052
+          fields: [total, online, offline_alt]
