@@ -166,6 +166,20 @@
         namespace: dozzle
         podSelector: app=dozzle
 
+- Tools:
+    - Omni Tools:
+        icon: mdi-toolbox
+        href: https://omni-tools.homelab.lan
+        description: File, text and image utilities
+        namespace: omni-tools
+        podSelector: app=omni-tools
+    - IT-Tools:
+        icon: mdi-tools
+        href: https://it-tools.homelab.lan
+        description: Developer utilities
+        namespace: it-tools
+        podSelector: app=it-tools
+
 - Network:
     - Pi-hole:
         icon: si-pihole
