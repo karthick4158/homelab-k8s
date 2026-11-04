@@ -1,17 +1,19 @@
 # Profilarr, reached via traefik-gateway at profilarr.homelab.lan (http and
-# https). Its container runs in the shared VPN pod (downloads.yaml); this file
-# holds its config volume, Service and route.
+# https). Its container (Profilarr v2) runs in the shared VPN pod
+# (downloads.yaml); this file holds its data volume, Service and route.
+# profilarr-data is new for v2 (v1 data is not compatible); 1Gi because v2
+# keeps git clones of the profile databases.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: profilarr-config
+  name: profilarr-data
   namespace: media
 spec:
   accessModes: [ReadWriteOnce]
   # No storageClassName: uses the default (local-path).
   resources:
     requests:
-      storage: 500Mi
+      storage: 1Gi
 ---
 apiVersion: v1
 kind: Service

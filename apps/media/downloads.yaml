@@ -281,18 +281,28 @@ spec:
               memory: 512Mi
 
         # Syncs quality profiles and custom formats to Radarr/Sonarr (reached
-        # on localhost:7878 / localhost:8989). Not a LinuxServer image, so no
-        # PUID/PGID/UMASK; it only writes its own /config.
+        # on localhost:7878 / localhost:8989). Profilarr v2 (full rewrite; v1 is
+        # unmaintained). Takes PUID/PGID/UMASK like the arr containers above.
+        # ORIGIN must be the public URL because it sits behind the reverse proxy.
+        # Built-in login (AUTH defaults to on), created on first visit.
         - name: profilarr
-          image: santiagosayshey/profilarr:v1.1.5
+          image: ghcr.io/dictionarry-hub/profilarr:2.3.1
           env:
+            - name: PUID
+              value: "1000"
+            - name: PGID
+              value: "100"
+            - name: UMASK
+              value: "002"
             - name: TZ
               value: America/Chicago
+            - name: ORIGIN
+              value: https://profilarr.homelab.lan
           ports:
             - name: profilarr
               containerPort: 6868
           volumeMounts:
-            - name: profilarr-config
+            - name: profilarr-data
               mountPath: /config
           readinessProbe:
             httpGet:
@@ -313,10 +323,10 @@ spec:
             failureThreshold: 3
           resources:
             requests:
-              cpu: 20m
-              memory: 128Mi
+              cpu: 50m
+              memory: 192Mi
             limits:
-              memory: 512Mi
+              memory: 768Mi
 
         - name: seerr
           image: ghcr.io/seerr-team/seerr:v3.5.1
@@ -429,9 +439,9 @@ spec:
         - name: prowlarr-config
           persistentVolumeClaim:
             claimName: prowlarr-config
-        - name: profilarr-config
+        - name: profilarr-data
           persistentVolumeClaim:
-            claimName: profilarr-config    # profilarr.yaml
+            claimName: profilarr-data    # profilarr.yaml
 ---
 # Gluetun's control server, for the Homepage widget (public IP / country).
 apiVersion: v1

@@ -157,10 +157,20 @@ kubeadm init --pod-network-cidr=10.244.0.0/16 \
 ### Profilarr
 
 - https://profilarr.homelab.lan (`apps/media/profilarr.yaml`), syncs quality profiles and custom
-  formats to Radarr/Sonarr. Image `santiagosayshey/profilarr:v1.1.5`, web UI on 6868 (listed in
-  `FIREWALL_INPUT_PORTS`), config on the 500Mi local-path PVC `profilarr-config`. Same pod, so it
-  reaches Radarr at `localhost:7878` and Sonarr at `localhost:8989`. Needs a DNS record
-  `profilarr.homelab.lan -> 10.0.0.89` in Pi-hole and AdGuard.
+  formats to Radarr/Sonarr. Profilarr v2, image `ghcr.io/dictionarry-hub/profilarr:2.3.1`, web UI
+  on 6868 (listed in `FIREWALL_INPUT_PORTS`), data in `/config` on the 1Gi local-path PVC
+  `profilarr-data` (v2 keeps git clones of the profile databases). Runs with PUID 1000 / PGID 100 /
+  UMASK 002 like the arr containers. Same pod, so it reaches Radarr at `localhost:7878` and Sonarr
+  at `localhost:8989`. Needs a DNS record `profilarr.homelab.lan -> 10.0.0.89` in Pi-hole and
+  AdGuard.
+- `ORIGIN=https://profilarr.homelab.lan` is set because it sits behind the reverse proxy (Traefik);
+  the v2 README marks it required in that setup. Add more URLs comma-separated if it is ever
+  reached by another name.
+- Built-in login (`AUTH` left at its default `on`): the admin user is created on the first visit.
+- v1 (`santiagosayshey/profilarr`) was dropped: it is unmaintained, and its data is not compatible
+  with v2, hence the new PVC.
+- Cleanup: the old v1 PVC `profilarr-config` is left behind. Once the pod runs on the new one,
+  delete it with `kubectl -n media delete pvc profilarr-config`.
 
 ### Rename and move job (mkv-rename)
 
