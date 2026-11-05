@@ -23,3 +23,7 @@
         - abbr: PRF
           icon: mdi-movie
           href: https://profilarr.homelab.lan
+    - FileBrowser:
+        - abbr: FB
+          icon: mdi-folder
+          href: https://media.homelab.lan
