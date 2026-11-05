@@ -99,8 +99,3 @@ homekit:
         - button.jn8bt3dd1tw486371_remote_stop
         - button.jn8bt3dd1tw486371_remote_unlock
         - lock.jn8bt3dd1tw486371_lock
-http:
-  use_x_forwarded_for: true
-  trusted_proxies:
-    - 10.0.0.89
-    - 10.244.0.0/16
