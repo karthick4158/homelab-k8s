@@ -210,7 +210,7 @@
         widget:
           type: homeassistant
           url: http://home-assistant.home-assistant.svc.cluster.local:8123
-          key: "{{HOMEPAGE_VAR_HOMEASSISTANT_TOKEN}}"
+          key: "{{HOMEPAGE_VAR_HA_TOKEN}}"
           fields: [people_home, lights_on, switches_on]
     - ESPHome:
         icon: esphome
