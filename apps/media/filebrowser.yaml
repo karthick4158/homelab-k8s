@@ -1,7 +1,8 @@
-# FileBrowser (web file manager for the media library), reached via
-# traefik-gateway at media.homelab.lan (http and https). Mounts the OMV library
-# read-write at /srv. On first start it creates user "admin" and prints a random
-# password in its log: change it at once.
+# FileBrowser Quantum (web file manager for the media library; replaces the
+# archived filebrowser/filebrowser), reached via traefik-gateway at
+# media.homelab.lan (http and https). Mounts the OMV library read-write at /srv.
+# Config: filebrowser-config.yaml (configMapGenerator in kustomization.yaml).
+# On first start it creates user "admin" with password "admin": change it at once.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -43,16 +44,15 @@ spec:
         runAsNonRoot: true
       containers:
         - name: filebrowser
-          image: filebrowser/filebrowser:v2.63.23
+          # Full variant (not -slim): includes ffmpeg/mupdf for video and PDF
+          # thumbnails.
+          image: gtstef/filebrowser:2.0.2-stable
+          # umask 002 so the config's createFilePermission 664 /
+          # createDirectoryPermission 775 reach the NFS library unmasked.
+          command: ["/bin/sh", "-c", "umask 002 && exec ./filebrowser"]
           env:
-            # Defaults of the image's /config/settings.json, made explicit.
-            # Port 8080 instead of 80: the image runs as non-root.
-            - name: FB_PORT
-              value: "8080"
-            - name: FB_ROOT
-              value: /srv
-            - name: FB_DATABASE
-              value: /database/filebrowser.db
+            - name: FILEBROWSER_CONFIG
+              value: /config/config.yaml
           ports:
             - name: http
               containerPort: 8080
@@ -61,6 +61,11 @@ spec:
               mountPath: /database
             - name: library
               mountPath: /srv
+            - name: config
+              mountPath: /config
+              readOnly: true
+            - name: cache
+              mountPath: /cache
           readinessProbe:
             httpGet:
               path: /health
@@ -88,6 +93,11 @@ spec:
         - name: library
           persistentVolumeClaim:
             claimName: library  # media-library.yaml
+        - name: config
+          configMap:
+            name: filebrowser-config
+        - name: cache
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service

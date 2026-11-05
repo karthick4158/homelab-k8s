@@ -45,3 +45,7 @@ configMapGenerator:
   - name: ip-notifier-script
     files:
       - ip-notifier.py
+  # FileBrowser Quantum config (filebrowser.yaml), mounted at /config.
+  - name: filebrowser-config
+    files:
+      - config.yaml=filebrowser-config.yaml

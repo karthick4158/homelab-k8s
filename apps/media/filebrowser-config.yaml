@@ -1,0 +1,32 @@
+# FileBrowser Quantum config (v2.0.2-stable), mounted read-only at
+# /config/config.yaml via the filebrowser-config configMapGenerator in
+# kustomization.yaml; a change rolls the pod (hash suffix). Reference:
+# frontend/public/config.generated.yaml in github.com/gtsteffaniak/filebrowser.
+# No secrets here: the admin password stays at the first-start default and is
+# changed in the UI (stored in the database, not in this file).
+http:
+  # 8080 instead of the image's default 80: the pod runs as non-root.
+  port: 8080
+  baseURL: "/"
+server:
+  logging:
+    - levels: "info|warning|error"
+  sources:
+    - path: "/srv"
+      name: "library"
+  # New SQLite file on the filebrowser-data PVC. The old FileBrowser
+  # filebrowser.db next to it is left untouched and never opened.
+  database:
+    path: "/database/quantum.db"
+  # Thumbnails and the search index (emptyDir, rebuilt after a restart).
+  cacheDir: "/cache"
+  # New files/folders writable by the library's "users" group (gid 100).
+  # The pod's umask is set to 002 so these modes are not masked to 644/755.
+  filesystem:
+    createFilePermission: "664"
+    createDirectoryPermission: "775"
+auth:
+  methods:
+    password:
+      enabled: true
+      signup: false
