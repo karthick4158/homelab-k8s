@@ -2,14 +2,14 @@
 # Git-managed and mounted read-only: edit here, not in the HA UI. Built-in cards only.
 # Layout rules: every view fits one screen with no scrolling; max_columns 3 everywhere (4 clips
 # at 1280 px); sections in a view are about the same height; tiles sit in pairs of 2 equal
-# columns, all the same height, each with an explicit mdi icon (the Home garage button is the
-# one deliberate exception: a big half-width button beside a 3-tile stack).
+# columns, all the same height, each with an explicit mdi icon (exception: the Home indoor
+# temperatures are one row of three equal 1-row tiles).
 title: Wall
 views:
   # ---------------------------------------------------------------- Home
   # Row budget: every column is exactly 10 grid rows (a row is ~56 px + 8 px gap, so
   # 10 rows ~ 632 px, which fills 1280x800 under the header). Every card has explicit rows.
-  #   Left   = clock 2 + weather 6 + Karthick|Tablet 2           = 10
+  #   Left   = weather 6 + laundry 3 (Washer|Dryer state, progress, done) + temps 1 = 10
   #   Middle = Driveway 5 + Radar 5                              = 10
   #   Right  = heading 1 + garage door 5 + entry 2 + lock|hatch 2 = 10
   - title: Home
@@ -18,18 +18,9 @@ views:
     type: sections
     max_columns: 3
     sections:
-      # Left: clock, weather, who's home.
+      # Left: weather, laundry, indoor temperatures.
       - type: grid
         cards:
-          - type: markdown
-            text_only: true
-            grid_options:
-              columns: full
-              rows: 2
-            content: >-
-              <h1><ha-icon icon="mdi:clock-outline"></ha-icon>
-              {{ now().strftime('%-I:%M %p') }}</h1>
-              {{ now().strftime('%A, %B %-d') }}
           # The dim forecast day labels / low temps use the theme's secondary text colour;
           # the built-in weather card has no colour option for them.
           - type: weather-forecast
@@ -41,20 +32,60 @@ views:
             grid_options:
               columns: full
               rows: 6
+          # Laundry: washer left, dryer right; rows are state, progress, completion time.
           - type: tile
-            entity: person.karthick
-            name: Karthick
-            icon: mdi:account
-            grid_options:
+            entity: sensor.washer_machine_state
+            name: Washer
+            icon: mdi:washing-machine
+            grid_options: &laundry_size
               columns: 6
-              rows: 2
+              rows: 1
           - type: tile
-            entity: sensor.fire_tablet_battery
-            name: Tablet
-            icon: mdi:tablet
-            grid_options:
-              columns: 6
-              rows: 2
+            entity: sensor.dryer_machine_state
+            name: Dryer
+            icon: mdi:tumble-dryer
+            grid_options: *laundry_size
+          - type: tile
+            entity: sensor.living_room_washer_progress
+            name: Washer progress
+            icon: mdi:progress-clock
+            grid_options: *laundry_size
+          - type: tile
+            entity: sensor.living_room_dryer_progress
+            name: Dryer progress
+            icon: mdi:progress-clock
+            grid_options: *laundry_size
+          - type: tile
+            entity: sensor.washer_completion_time
+            name: Washer done
+            icon: mdi:clock-check-outline
+            grid_options: *laundry_size
+          - type: tile
+            entity: sensor.dryer_completion_time
+            name: Dryer done
+            icon: mdi:clock-check-outline
+            grid_options: *laundry_size
+          # Indoor temperatures: three equal 1-row tiles; thermostats show the measured
+          # temperature (current_temperature), not the HVAC mode.
+          - type: tile
+            entity: climate.living_room
+            name: Living Room
+            icon: mdi:home-thermometer
+            state_content: current_temperature
+            grid_options: &temp_size
+              columns: 4
+              rows: 1
+          - type: tile
+            entity: climate.loft
+            name: Loft
+            icon: mdi:home-thermometer
+            state_content: current_temperature
+            grid_options: *temp_size
+          - type: tile
+            entity: sensor.bedroom_temperature
+            name: Bedroom
+            icon: mdi:home-thermometer
+            grid_options: *temp_size
 
       # Middle: driveway camera and radar, identical 5-row tiles. Snapshot mode (auto)
       # instead of live: the live stream rendered black on the tablet.
@@ -186,9 +217,10 @@ views:
               rows: 2
 
   # ---------------------------------------------------------------- Climate
-  # Two columns, 5 rows each:
-  #   Thermostats = heading 1 + LR|Loft 2 + Bedroom|Outside 2 = 5
-  #   Laundry     = heading 1 + 8 tiles in pairs 4            = 5
+  # Two columns, 5 rows each (laundry moved to the Home tab). Full-width tiles so the
+  # thermostat +/- controls have room:
+  #   Thermostats  = heading 1 + Living Room 2 + Loft 2   = 5
+  #   Temperatures = heading 1 + Bedroom 2 + Outside 2    = 5
   - title: Climate
     path: climate
     icon: mdi:thermostat
@@ -198,7 +230,7 @@ views:
       - type: grid
         cards:
           - type: heading
-            heading: Climate
+            heading: Thermostats
             icon: mdi:thermostat
             grid_options: {columns: full, rows: 1}
           - type: tile
@@ -207,71 +239,31 @@ views:
             icon: mdi:thermostat
             features: &climate_features
               - type: target-temperature
-            grid_options: {columns: 6, rows: 2}
+            grid_options: {columns: full, rows: 2}
           - type: tile
             entity: climate.loft
             name: Loft
             icon: mdi:thermostat
             features: *climate_features
-            grid_options: {columns: 6, rows: 2}
+            grid_options: {columns: full, rows: 2}
+
+      - type: grid
+        cards:
+          - type: heading
+            heading: Temperatures
+            icon: mdi:thermometer
+            grid_options: {columns: full, rows: 1}
           - type: tile
             entity: sensor.bedroom_temperature
             name: Bedroom
             icon: mdi:thermometer
-            grid_options: {columns: 6, rows: 2}
+            grid_options: {columns: full, rows: 2}
           - type: tile
             entity: weather.home
             name: Outside
             icon: mdi:sun-thermometer
             state_content: [temperature, state]
-            grid_options: {columns: 6, rows: 2}
-
-      - type: grid
-        cards:
-          - type: heading
-            heading: Laundry
-            icon: mdi:washing-machine
-            grid_options: {columns: full, rows: 1}
-          - type: tile
-            entity: sensor.washer_machine_state
-            name: Washer
-            icon: mdi:washing-machine
-            grid_options: {columns: 6, rows: 1}
-          - type: tile
-            entity: sensor.dryer_machine_state
-            name: Dryer
-            icon: mdi:tumble-dryer
-            grid_options: {columns: 6, rows: 1}
-          - type: tile
-            entity: sensor.washer_job_state
-            name: Washer job
-            icon: mdi:timer-outline
-            grid_options: {columns: 6, rows: 1}
-          - type: tile
-            entity: sensor.dryer_job_state
-            name: Dryer job
-            icon: mdi:timer-outline
-            grid_options: {columns: 6, rows: 1}
-          - type: tile
-            entity: sensor.living_room_washer_progress
-            name: Washer progress
-            icon: mdi:progress-clock
-            grid_options: {columns: 6, rows: 1}
-          - type: tile
-            entity: sensor.living_room_dryer_progress
-            name: Dryer progress
-            icon: mdi:progress-clock
-            grid_options: {columns: 6, rows: 1}
-          - type: tile
-            entity: sensor.washer_completion_time
-            name: Washer done
-            icon: mdi:clock-check-outline
-            grid_options: {columns: 6, rows: 1}
-          - type: tile
-            entity: sensor.dryer_completion_time
-            name: Dryer done
-            icon: mdi:clock-check-outline
-            grid_options: {columns: 6, rows: 1}
+            grid_options: {columns: full, rows: 2}
 
   # ---------------------------------------------------------------- Lights
   # Three columns, 8 rows each (was 4 sections, the 4th wrapped below):
