@@ -7,6 +7,11 @@
 title: Wall
 views:
   # ---------------------------------------------------------------- Home
+  # Row budget: every column is exactly 10 grid rows (a row is ~56 px + 8 px gap, so
+  # 10 rows ~ 632 px, which fills 1280x800 under the header). Every card has explicit rows.
+  #   Left   = clock 2 + weather 6 + Karthick|Tablet 2           = 10
+  #   Middle = Driveway 5 + Radar 5                              = 10
+  #   Right  = heading 1 + garage door 5 + entry 2 + lock|hatch 2 = 10
   - title: Home
     path: home
     icon: mdi:home
@@ -20,10 +25,13 @@ views:
             text_only: true
             grid_options:
               columns: full
+              rows: 2
             content: >-
               <h1><ha-icon icon="mdi:clock-outline"></ha-icon>
               {{ now().strftime('%-I:%M %p') }}</h1>
               {{ now().strftime('%A, %B %-d') }}
+          # The dim forecast day labels / low temps use the theme's secondary text colour;
+          # the built-in weather card has no colour option for them.
           - type: weather-forecast
             entity: weather.home
             forecast_type: daily
@@ -32,65 +40,95 @@ views:
             show_forecast: true
             grid_options:
               columns: full
+              rows: 6
           - type: tile
             entity: person.karthick
             name: Karthick
             icon: mdi:account
+            grid_options:
+              columns: 6
+              rows: 2
           - type: tile
             entity: sensor.fire_tablet_battery
             name: Tablet
             icon: mdi:tablet
+            grid_options:
+              columns: 6
+              rows: 2
 
-      # Middle: cameras.
+      # Middle: driveway camera and radar, identical 5-row tiles. Snapshot mode (auto)
+      # instead of live: the live stream rendered black on the tablet.
       - type: grid
         cards:
           - type: picture-entity
             entity: camera.10_0_0_72
             name: Driveway
-            camera_view: live
+            camera_view: auto
+            fit_mode: cover
             show_state: false
             grid_options:
               columns: full
+              rows: 5
           - type: picture-entity
             entity: camera.radar_wu_ohio_current
             name: Radar
             camera_view: auto
+            fit_mode: contain
             show_state: false
             grid_options:
               columns: full
+              rows: 5
 
-      # Right: garage and car. Big garage-door button (icon follows state via two
-      # conditional cards, exactly one visible) beside a stack of the three small tiles,
-      # so both halves are 3 rows tall. Fixed icons everywhere (state icons rendered
-      # blank on the tablet); tiles still show Open/Closed and colour when open.
+      # Right: garage and car. Tiles/buttons cannot colour an inactive (closed) cover, so
+      # the garage door is a picture-elements card with an explicitly coloured icon:
+      # green garage when closed, red open garage otherwise. Two conditionals, exactly one
+      # visible; both ask "Open/close the garage?" before toggling.
       - type: grid
         cards:
           - type: heading
             heading: Garage & car
             icon: mdi:garage
+            grid_options:
+              columns: full
+              rows: 1
           - type: conditional
             conditions:
               - condition: state
                 entity: cover.garage_2
                 state: closed
             grid_options: &garage_size
-              columns: 6
-              rows: 3
+              columns: full
+              rows: 5
             card:
-              type: button
-              entity: cover.garage_2
-              name: Garage door
-              icon: mdi:garage
-              icon_height: 80px
-              show_name: true
-              show_state: true
-              state_color: true
-              tap_action: &garage_toggle
-                action: toggle
-                confirmation:
-                  text: Open/close the garage?
-              hold_action:
-                action: none
+              type: picture-elements
+              # Transparent 5:4 spacer so the card is sized by the grid, not a photo.
+              image: &garage_bg "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='125' height='100' viewBox='0 0 125 100'/%3E"
+              elements:
+                - type: icon
+                  icon: mdi:garage
+                  entity: cover.garage_2
+                  tap_action: &garage_toggle
+                    action: toggle
+                    confirmation:
+                      text: Open/close the garage?
+                  hold_action: &no_hold
+                    action: none
+                  style:
+                    top: 40%
+                    left: 50%
+                    color: "#43a047"
+                    --mdc-icon-size: 140px
+                - type: state-label
+                  entity: cover.garage_2
+                  prefix: "Garage door: "
+                  tap_action: *garage_toggle
+                  hold_action: *no_hold
+                  style: &garage_label
+                    top: 85%
+                    left: 50%
+                    color: var(--primary-text-color)
+                    font-size: 24px
+                    font-weight: bold
           - type: conditional
             conditions:
               - condition: state
@@ -98,45 +136,59 @@ views:
                 state_not: closed
             grid_options: *garage_size
             card:
-              type: button
-              entity: cover.garage_2
-              name: Garage door
-              icon: mdi:garage-open
-              icon_height: 80px
-              show_name: true
-              show_state: true
-              state_color: true
-              tap_action: *garage_toggle
-              hold_action:
-                action: none
+              type: picture-elements
+              image: *garage_bg
+              elements:
+                - type: icon
+                  icon: mdi:garage-open
+                  entity: cover.garage_2
+                  tap_action: *garage_toggle
+                  hold_action: *no_hold
+                  style:
+                    top: 40%
+                    left: 50%
+                    color: "#e53935"
+                    --mdc-icon-size: 140px
+                - type: state-label
+                  entity: cover.garage_2
+                  prefix: "Garage door: "
+                  tap_action: *garage_toggle
+                  hold_action: *no_hold
+                  style: *garage_label
+          - type: tile
+            entity: binary_sensor.lumi_lumi_sensor_magnet_aq2_8c1ad107_on_off
+            name: Garage entry
+            icon: mdi:door
+            grid_options:
+              columns: full
+              rows: 2
           # Nissan Rogue: no battery/range sensors exist; lock + hatch only.
-          - type: vertical-stack
+          - type: tile
+            entity: lock.jn8bt3dd1tw486371_lock
+            name: Car lock
+            icon: mdi:car-key
+            tap_action: &car_toggle
+              action: toggle
+              confirmation:
+                text: Lock/unlock the car?
+            icon_tap_action: *car_toggle
+            hold_action:
+              action: none
             grid_options:
               columns: 6
-              rows: 3
-            cards:
-              - type: tile
-                entity: binary_sensor.lumi_lumi_sensor_magnet_aq2_8c1ad107_on_off
-                name: Garage entry
-                icon: mdi:door
-              - type: tile
-                entity: lock.jn8bt3dd1tw486371_lock
-                name: Car lock
-                icon: mdi:car-key
-                tap_action: &car_toggle
-                  action: toggle
-                  confirmation:
-                    text: Lock/unlock the car?
-                icon_tap_action: *car_toggle
-                hold_action:
-                  action: none
-              - type: tile
-                entity: binary_sensor.jn8bt3dd1tw486371_hatch
-                name: Car hatch
-                icon: mdi:car-back
+              rows: 2
+          - type: tile
+            entity: binary_sensor.jn8bt3dd1tw486371_hatch
+            name: Car hatch
+            icon: mdi:car-back
+            grid_options:
+              columns: 6
+              rows: 2
 
   # ---------------------------------------------------------------- Climate
-  # Two sections, both 4 tile-rows tall: thermostats (2-row tiles) and laundry.
+  # Two columns, 5 rows each:
+  #   Thermostats = heading 1 + LR|Loft 2 + Bedroom|Outside 2 = 5
+  #   Laundry     = heading 1 + 8 tiles in pairs 4            = 5
   - title: Climate
     path: climate
     icon: mdi:thermostat
@@ -148,70 +200,84 @@ views:
           - type: heading
             heading: Climate
             icon: mdi:thermostat
+            grid_options: {columns: full, rows: 1}
           - type: tile
             entity: climate.living_room
             name: Living Room
             icon: mdi:thermostat
             features: &climate_features
               - type: target-temperature
+            grid_options: {columns: 6, rows: 2}
           - type: tile
             entity: climate.loft
             name: Loft
             icon: mdi:thermostat
             features: *climate_features
+            grid_options: {columns: 6, rows: 2}
           - type: tile
             entity: sensor.bedroom_temperature
             name: Bedroom
             icon: mdi:thermometer
-            grid_options:
-              rows: 2
+            grid_options: {columns: 6, rows: 2}
           - type: tile
             entity: weather.home
             name: Outside
             icon: mdi:sun-thermometer
             state_content: [temperature, state]
-            grid_options:
-              rows: 2
+            grid_options: {columns: 6, rows: 2}
 
       - type: grid
         cards:
           - type: heading
             heading: Laundry
             icon: mdi:washing-machine
+            grid_options: {columns: full, rows: 1}
           - type: tile
             entity: sensor.washer_machine_state
             name: Washer
             icon: mdi:washing-machine
+            grid_options: {columns: 6, rows: 1}
           - type: tile
             entity: sensor.dryer_machine_state
             name: Dryer
             icon: mdi:tumble-dryer
+            grid_options: {columns: 6, rows: 1}
           - type: tile
             entity: sensor.washer_job_state
             name: Washer job
             icon: mdi:timer-outline
+            grid_options: {columns: 6, rows: 1}
           - type: tile
             entity: sensor.dryer_job_state
             name: Dryer job
             icon: mdi:timer-outline
+            grid_options: {columns: 6, rows: 1}
           - type: tile
             entity: sensor.living_room_washer_progress
             name: Washer progress
             icon: mdi:progress-clock
+            grid_options: {columns: 6, rows: 1}
           - type: tile
             entity: sensor.living_room_dryer_progress
             name: Dryer progress
             icon: mdi:progress-clock
+            grid_options: {columns: 6, rows: 1}
           - type: tile
             entity: sensor.washer_completion_time
             name: Washer done
             icon: mdi:clock-check-outline
+            grid_options: {columns: 6, rows: 1}
           - type: tile
             entity: sensor.dryer_completion_time
             name: Dryer done
             icon: mdi:clock-check-outline
+            grid_options: {columns: 6, rows: 1}
 
   # ---------------------------------------------------------------- Lights
+  # Three columns, 8 rows each (was 4 sections, the 4th wrapped below):
+  #   Kitchen & outside = heading 1 + 8 lights 4 + Scenes heading 1 + 2 scenes 1 + 1 scene full 1 = 8
+  #   Baths & bedroom   = heading 1 + 6 lights in 2-row pairs 6 + MB 4 full 1                 = 8
+  #   Plugs             = heading 1 + 10 plugs 5 + All lights off full 2                         = 8
   - title: Lights
     path: lights
     icon: mdi:lightbulb-group
@@ -223,70 +289,157 @@ views:
           - type: heading
             heading: Kitchen & outside
             icon: mdi:lightbulb
+            grid_options: {columns: full, rows: 1}
           - type: tile
             entity: light.backyard
             name: Backyard
+            grid_options: {columns: 6, rows: 1}
           - type: tile
             entity: light.garage_door
             name: Garage door
+            grid_options: {columns: 6, rows: 1}
           - type: tile
             entity: light.strip_light
             name: Cabinet strip
+            grid_options: {columns: 6, rows: 1}
           - type: tile
             entity: light.stovetop_light
             name: Stove top
+            grid_options: {columns: 6, rows: 1}
           - type: tile
             entity: light.office_zig1_level_on_off
             name: Office
+            grid_options: {columns: 6, rows: 1}
           - type: tile
             entity: light.h6199_4d1f
             name: TV backlight
+            grid_options: {columns: 6, rows: 1}
           - type: tile
             entity: light.powderroom_1
             name: Powder room
+            grid_options: {columns: 6, rows: 1}
           - type: tile
             entity: light.smart_bulb_2
             name: Smart bulb 2
+            grid_options: {columns: 6, rows: 1}
+          - type: heading
+            heading: Scenes
+            icon: mdi:palette
+            grid_options: {columns: full, rows: 1}
+          - type: tile
+            entity: scene.kitchen_cabinet_light
+            name: Cabinet
+            tap_action:
+              action: perform-action
+              perform_action: scene.turn_on
+              target:
+                entity_id: scene.kitchen_cabinet_light
+            grid_options: {columns: 6, rows: 1}
+          - type: tile
+            entity: scene.stove_lights_switch_on
+            name: Stove lights
+            tap_action:
+              action: perform-action
+              perform_action: scene.turn_on
+              target:
+                entity_id: scene.stove_lights_switch_on
+            grid_options: {columns: 6, rows: 1}
+          - type: tile
+            entity: scene.stove_light_red
+            name: Stove red
+            tap_action:
+              action: perform-action
+              perform_action: scene.turn_on
+              target:
+                entity_id: scene.stove_light_red
+            grid_options: {columns: full, rows: 1}
 
       - type: grid
         cards:
           - type: heading
             heading: Baths & bedroom
             icon: mdi:bed
+            grid_options: {columns: full, rows: 1}
           - type: tile
             entity: light.guestbath1
             name: Guest bath 1
+            grid_options: {columns: 6, rows: 2}
           - type: tile
             entity: light.guestbath2
             name: Guest bath 2
+            grid_options: {columns: 6, rows: 2}
           - type: tile
             entity: light.guestbath3
             name: Guest bath 3
+            grid_options: {columns: 6, rows: 2}
           - type: tile
             entity: light.mb1
             name: MB 1
+            grid_options: {columns: 6, rows: 2}
           - type: tile
             entity: light.mb2
             name: MB 2
+            grid_options: {columns: 6, rows: 2}
           - type: tile
             entity: light.mb3
             name: MB 3
+            grid_options: {columns: 6, rows: 2}
           - type: tile
             entity: light.mb4
             name: MB 4
+            grid_options: {columns: full, rows: 1}
 
       - type: grid
         cards:
           - type: heading
-            heading: Scenes
-            icon: mdi:palette
+            heading: Plugs
+            icon: mdi:power-socket-us
+            grid_options: {columns: full, rows: 1}
+          - type: tile
+            entity: switch.coat_room
+            name: Coat room
+            grid_options: {columns: 6, rows: 1}
+          - type: tile
+            entity: switch.laundry
+            name: Laundry
+            grid_options: {columns: 6, rows: 1}
+          - type: tile
+            entity: switch.mb_closet
+            name: MB closet
+            grid_options: {columns: 6, rows: 1}
+          - type: tile
+            entity: switch.office_closet
+            name: Office closet
+            grid_options: {columns: 6, rows: 1}
+          - type: tile
+            entity: switch.pantry
+            name: Pantry
+            grid_options: {columns: 6, rows: 1}
+          - type: tile
+            entity: switch.rice_cooker
+            name: Rice cooker
+            grid_options: {columns: 6, rows: 1}
+          - type: tile
+            entity: switch.tv
+            name: TV plug
+            grid_options: {columns: 6, rows: 1}
+          - type: tile
+            entity: switch.projector
+            name: Projector
+            grid_options: {columns: 6, rows: 1}
+          - type: tile
+            entity: switch.iphone_charger
+            name: iPhone charger
+            grid_options: {columns: 6, rows: 1}
+          - type: tile
+            entity: switch.vaccum_charger
+            name: Vacuum charger
+            grid_options: {columns: 6, rows: 1}
           - type: button
             name: All lights off
             icon: mdi:lightbulb-group-off
             show_state: false
-            grid_options:
-              columns: full
-              rows: 1
+            grid_options: {columns: full, rows: 2}
             tap_action:
               action: perform-action
               perform_action: light.turn_off
@@ -307,75 +460,10 @@ views:
                   - light.mb2
                   - light.mb3
                   - light.mb4
-          - type: tile
-            entity: scene.kitchen_cabinet_light
-            name: Cabinet
-            grid_options:
-              columns: full
-            tap_action:
-              action: perform-action
-              perform_action: scene.turn_on
-              target:
-                entity_id: scene.kitchen_cabinet_light
-          - type: tile
-            entity: scene.stove_lights_switch_on
-            name: Stove lights
-            grid_options:
-              columns: full
-            tap_action:
-              action: perform-action
-              perform_action: scene.turn_on
-              target:
-                entity_id: scene.stove_lights_switch_on
-          - type: tile
-            entity: scene.stove_light_red
-            name: Stove red
-            grid_options:
-              columns: full
-            tap_action:
-              action: perform-action
-              perform_action: scene.turn_on
-              target:
-                entity_id: scene.stove_light_red
-
-      - type: grid
-        cards:
-          - type: heading
-            heading: Plugs
-            icon: mdi:power-socket-us
-          - type: tile
-            entity: switch.coat_room
-            name: Coat room
-          - type: tile
-            entity: switch.laundry
-            name: Laundry
-          - type: tile
-            entity: switch.mb_closet
-            name: MB closet
-          - type: tile
-            entity: switch.office_closet
-            name: Office closet
-          - type: tile
-            entity: switch.pantry
-            name: Pantry
-          - type: tile
-            entity: switch.rice_cooker
-            name: Rice cooker
-          - type: tile
-            entity: switch.tv
-            name: TV plug
-          - type: tile
-            entity: switch.projector
-            name: Projector
-          - type: tile
-            entity: switch.iphone_charger
-            name: iPhone charger
-          - type: tile
-            entity: switch.vaccum_charger
-            name: Vacuum charger
 
   # ---------------------------------------------------------------- Water
   # Every zone asks before toggling (body and icon taps share one anchor).
+  # Three columns, 5 rows each: heading 1 + 4 zones in 2-row pairs 4 = 5.
   - title: Water
     path: water
     icon: mdi:sprinkler-variant
@@ -385,8 +473,9 @@ views:
       - type: grid
         cards:
           - type: heading
-            heading: Controller 1 & 2
+            heading: Controller 1
             icon: mdi:sprinkler-variant
+            grid_options: {columns: full, rows: 1}
           - type: tile
             entity: switch.sprinkler_controller_01_sprinkler_01
             name: Zone 01
@@ -395,69 +484,90 @@ views:
               confirmation:
                 text: Turn this sprinkler zone on/off?
             icon_tap_action: *zone_toggle
+            grid_options: {columns: 6, rows: 2}
           - type: tile
             entity: switch.sprinkler_controller_01_sprinkler_02
             name: Zone 02
             tap_action: *zone_toggle
             icon_tap_action: *zone_toggle
+            grid_options: {columns: 6, rows: 2}
           - type: tile
             entity: switch.sprinkler_controller_01_sprinkler_03
             name: Zone 03
             tap_action: *zone_toggle
             icon_tap_action: *zone_toggle
+            grid_options: {columns: 6, rows: 2}
           - type: tile
             entity: switch.sprinkler_controller_01_sprinkler_04
             name: Zone 04
             tap_action: *zone_toggle
             icon_tap_action: *zone_toggle
+            grid_options: {columns: 6, rows: 2}
+
+      - type: grid
+        cards:
+          - type: heading
+            heading: Zones 5-8
+            icon: mdi:sprinkler-variant
+            grid_options: {columns: full, rows: 1}
           - type: tile
             entity: switch.sprinkler_5
             name: Zone 5
             tap_action: *zone_toggle
             icon_tap_action: *zone_toggle
+            grid_options: {columns: 6, rows: 2}
           - type: tile
             entity: switch.sprinkler_6
             name: Zone 6
             tap_action: *zone_toggle
             icon_tap_action: *zone_toggle
+            grid_options: {columns: 6, rows: 2}
           - type: tile
             entity: switch.sprinkler_7
             name: Zone 7
             tap_action: *zone_toggle
             icon_tap_action: *zone_toggle
+            grid_options: {columns: 6, rows: 2}
           - type: tile
             entity: switch.sprinkler_8
             name: Zone 8
             tap_action: *zone_toggle
             icon_tap_action: *zone_toggle
+            grid_options: {columns: 6, rows: 2}
 
       - type: grid
         cards:
           - type: heading
             heading: Controller 3
             icon: mdi:sprinkler-variant
+            grid_options: {columns: full, rows: 1}
           - type: tile
             entity: switch.sprinkler_controller_3_sprinkler_1
             name: C3 Zone 1
             tap_action: *zone_toggle
             icon_tap_action: *zone_toggle
+            grid_options: {columns: 6, rows: 2}
           - type: tile
             entity: switch.sprinkler_controller_3_sprinkler_2
             name: C3 Zone 2
             tap_action: *zone_toggle
             icon_tap_action: *zone_toggle
+            grid_options: {columns: 6, rows: 2}
           - type: tile
             entity: switch.sprinkler_controller_3_sprinkler_3
             name: C3 Zone 3
             tap_action: *zone_toggle
             icon_tap_action: *zone_toggle
+            grid_options: {columns: 6, rows: 2}
           - type: tile
             entity: switch.sprinkler_controller_3_sprinkler_4
             name: C3 Zone 4
             tap_action: *zone_toggle
             icon_tap_action: *zone_toggle
+            grid_options: {columns: 6, rows: 2}
 
   # ---------------------------------------------------------------- Media
+  # One column: heading 1 + 4 full-width tiles 4 = 5.
   - title: Media
     path: media
     icon: mdi:television-play
@@ -469,23 +579,20 @@ views:
           - type: heading
             heading: Media
             icon: mdi:television-play
+            grid_options: {columns: full, rows: 1}
           - type: tile
             entity: media_player.living_room_apple_tv
             name: Living room Apple TV
-            grid_options:
-              columns: full
+            grid_options: {columns: full, rows: 1}
           - type: tile
             entity: media_player.loft
             name: Loft Apple TV
-            grid_options:
-              columns: full
+            grid_options: {columns: full, rows: 1}
           - type: tile
             entity: media_player.tv
             name: Samsung TV
-            grid_options:
-              columns: full
+            grid_options: {columns: full, rows: 1}
           - type: tile
             entity: media_player.home_theater
             name: Denon
-            grid_options:
-              columns: full
+            grid_options: {columns: full, rows: 1}
