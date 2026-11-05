@@ -1,15 +1,16 @@
-# Wall dashboard for the 10" Fire tablet (Fully Kiosk, landscape). Served at /wall-kiosk.
+# Wall dashboard for the 10" Fire tablet (Fully Kiosk, landscape ~1280x800). Served at /wall-kiosk.
 # Git-managed and mounted read-only: edit here, not in the HA UI. Built-in cards only.
+# Layout rule: every view must fit on one screen with no scrolling. Prefer tiles; add a view
+# rather than growing one.
 title: Wall
 views:
+  # ---------------------------------------------------------------- Home
   - title: Home
     path: home
     icon: mdi:home
     type: sections
     max_columns: 4
-    dense_section_placement: true
     sections:
-      # 1. Clock, weather, who is home
       - type: grid
         cards:
           - type: markdown
@@ -23,6 +24,7 @@ views:
           - type: weather-forecast
             entity: weather.home
             forecast_type: daily
+            forecast_slots: 5
             show_current: true
             show_forecast: true
             grid_options:
@@ -32,52 +34,48 @@ views:
             name: Karthick
           - type: tile
             entity: sensor.fire_tablet_battery
-            name: Tablet battery
-          - type: tile
-            entity: number.fire_tablet_screen_brightness
-            name: Brightness
-            grid_options:
-              columns: full
-            features:
-              - type: numeric-input
-                style: slider
+            name: Tablet
 
-      # 2. Climate
       - type: grid
         cards:
           - type: heading
             heading: Climate
             icon: mdi:thermostat
-          - type: thermostat
+          - type: tile
             entity: climate.living_room
             name: Living Room
-          - type: thermostat
+            grid_options:
+              columns: full
+            features: &climate_features
+              - type: target-temperature
+              - type: climate-hvac-modes
+                style: icons
+                hvac_modes: ["off", heat, cool, heat_cool, auto]
+          - type: tile
             entity: climate.loft
             name: Loft
+            grid_options:
+              columns: full
+            features: *climate_features
           - type: tile
             entity: sensor.bedroom_temperature
             name: Bedroom
-          - type: tile
-            entity: sensor.office_temperature
-            name: Office
+            grid_options:
+              columns: full
 
-      # 3. Doors and garage
       - type: grid
         cards:
           - type: heading
-            heading: Doors & Garage
-            icon: mdi:garage
+            heading: Doors
+            icon: mdi:door
           - type: tile
             entity: cover.garage_2
             name: Garage door
-            icon_tap_action:
+            tap_action: &garage_toggle
               action: toggle
               confirmation:
                 text: Open/close the garage?
-            tap_action:
-              action: toggle
-              confirmation:
-                text: Open/close the garage?
+            icon_tap_action: *garage_toggle
             hold_action:
               action: none
             grid_options:
@@ -97,8 +95,21 @@ views:
           - type: tile
             entity: binary_sensor.lumi_lumi_sensor_magnet_aq2_14481007_on_off
             name: Office closet
+          # Nissan Rogue: no battery/range sensors exist; lock + hatch only.
+          - type: tile
+            entity: lock.jn8bt3dd1tw486371_lock
+            name: Car
+            tap_action: &car_toggle
+              action: toggle
+              confirmation:
+                text: Lock/unlock the car?
+            icon_tap_action: *car_toggle
+            hold_action:
+              action: none
+          - type: tile
+            entity: binary_sensor.jn8bt3dd1tw486371_hatch
+            name: Car hatch
 
-      # 4. Laundry
       - type: grid
         cards:
           - type: heading
@@ -120,10 +131,10 @@ views:
             name: Dryer job
           - type: tile
             entity: sensor.living_room_washer_progress
-            name: Washer progress
+            name: Washer %
           - type: tile
             entity: sensor.living_room_dryer_progress
-            name: Dryer progress
+            name: Dryer %
           - type: tile
             entity: sensor.washer_completion_time
             name: Washer done
@@ -131,12 +142,18 @@ views:
             entity: sensor.dryer_completion_time
             name: Dryer done
 
-      # 5. Lights and plugs
+  # ---------------------------------------------------------------- Lights
+  - title: Lights
+    path: lights
+    icon: mdi:lightbulb-group
+    type: sections
+    max_columns: 4
+    sections:
       - type: grid
         cards:
           - type: heading
-            heading: Lights
-            icon: mdi:lightbulb-group
+            heading: Kitchen & outside
+            icon: mdi:lightbulb
           - type: tile
             entity: light.backyard
             name: Backyard
@@ -161,6 +178,12 @@ views:
           - type: tile
             entity: light.smart_bulb_2
             name: Smart bulb 2
+
+      - type: grid
+        cards:
+          - type: heading
+            heading: Baths & bedroom
+            icon: mdi:bed
           - type: tile
             entity: light.guestbath1
             name: Guest bath 1
@@ -182,25 +205,64 @@ views:
           - type: tile
             entity: light.mb4
             name: MB 4
+
+      - type: grid
+        cards:
+          - type: heading
+            heading: Scenes
+            icon: mdi:palette
           - type: button
+            name: All lights off
+            icon: mdi:lightbulb-group-off
+            show_state: false
+            grid_options:
+              columns: full
+              rows: 1
+            tap_action:
+              action: perform-action
+              perform_action: light.turn_off
+              target:
+                entity_id:
+                  - light.backyard
+                  - light.garage_door
+                  - light.strip_light
+                  - light.stovetop_light
+                  - light.office_zig1_level_on_off
+                  - light.h6199_4d1f
+                  - light.powderroom_1
+                  - light.smart_bulb_2
+                  - light.guestbath1
+                  - light.guestbath2
+                  - light.guestbath3
+                  - light.mb1
+                  - light.mb2
+                  - light.mb3
+                  - light.mb4
+          - type: tile
             entity: scene.kitchen_cabinet_light
-            name: Cabinet scene
+            name: Cabinet
+            grid_options:
+              columns: full
             tap_action:
               action: perform-action
               perform_action: scene.turn_on
               target:
                 entity_id: scene.kitchen_cabinet_light
-          - type: button
+          - type: tile
             entity: scene.stove_lights_switch_on
             name: Stove lights
+            grid_options:
+              columns: full
             tap_action:
               action: perform-action
               perform_action: scene.turn_on
               target:
                 entity_id: scene.stove_lights_switch_on
-          - type: button
+          - type: tile
             entity: scene.stove_light_red
             name: Stove red
+            grid_options:
+              columns: full
             tap_action:
               action: perform-action
               perform_action: scene.turn_on
@@ -210,7 +272,7 @@ views:
       - type: grid
         cards:
           - type: heading
-            heading: Switches & Plugs
+            heading: Plugs
             icon: mdi:power-socket-us
           - type: tile
             entity: switch.coat_room
@@ -243,62 +305,107 @@ views:
             entity: switch.vaccum_charger
             name: Vacuum charger
 
-      # 6. Sprinklers
+  # ---------------------------------------------------------------- Water
+  # Every zone asks before toggling (body and icon taps share one anchor).
+  - title: Water
+    path: water
+    icon: mdi:sprinkler-variant
+    type: sections
+    max_columns: 2
+    sections:
       - type: grid
         cards:
           - type: heading
-            heading: Sprinklers
+            heading: Controller 1 & 2
             icon: mdi:sprinkler-variant
           - type: tile
             entity: switch.sprinkler_controller_01_sprinkler_01
             name: Zone 01
+            tap_action: &zone_toggle
+              action: toggle
+              confirmation:
+                text: Turn this sprinkler zone on/off?
+            icon_tap_action: *zone_toggle
           - type: tile
             entity: switch.sprinkler_controller_01_sprinkler_02
             name: Zone 02
+            tap_action: *zone_toggle
+            icon_tap_action: *zone_toggle
           - type: tile
             entity: switch.sprinkler_controller_01_sprinkler_03
             name: Zone 03
+            tap_action: *zone_toggle
+            icon_tap_action: *zone_toggle
           - type: tile
             entity: switch.sprinkler_controller_01_sprinkler_04
             name: Zone 04
+            tap_action: *zone_toggle
+            icon_tap_action: *zone_toggle
           - type: tile
             entity: switch.sprinkler_5
             name: Zone 5
+            tap_action: *zone_toggle
+            icon_tap_action: *zone_toggle
           - type: tile
             entity: switch.sprinkler_6
             name: Zone 6
+            tap_action: *zone_toggle
+            icon_tap_action: *zone_toggle
           - type: tile
             entity: switch.sprinkler_7
             name: Zone 7
+            tap_action: *zone_toggle
+            icon_tap_action: *zone_toggle
           - type: tile
             entity: switch.sprinkler_8
             name: Zone 8
-          - type: tile
-            entity: switch.sprinkler_controller_3_sprinkler_1
-            name: C3 Zone 1
-          - type: tile
-            entity: switch.sprinkler_controller_3_sprinkler_2
-            name: C3 Zone 2
-          - type: tile
-            entity: switch.sprinkler_controller_3_sprinkler_3
-            name: C3 Zone 3
-          - type: tile
-            entity: switch.sprinkler_controller_3_sprinkler_4
-            name: C3 Zone 4
+            tap_action: *zone_toggle
+            icon_tap_action: *zone_toggle
 
-      # 7. Cameras
       - type: grid
         cards:
           - type: heading
-            heading: Cameras
-            icon: mdi:cctv
+            heading: Controller 3
+            icon: mdi:sprinkler-variant
+          - type: tile
+            entity: switch.sprinkler_controller_3_sprinkler_1
+            name: C3 Zone 1
+            tap_action: *zone_toggle
+            icon_tap_action: *zone_toggle
+          - type: tile
+            entity: switch.sprinkler_controller_3_sprinkler_2
+            name: C3 Zone 2
+            tap_action: *zone_toggle
+            icon_tap_action: *zone_toggle
+          - type: tile
+            entity: switch.sprinkler_controller_3_sprinkler_3
+            name: C3 Zone 3
+            tap_action: *zone_toggle
+            icon_tap_action: *zone_toggle
+          - type: tile
+            entity: switch.sprinkler_controller_3_sprinkler_4
+            name: C3 Zone 4
+            tap_action: *zone_toggle
+            icon_tap_action: *zone_toggle
+
+  # ---------------------------------------------------------------- Cameras
+  - title: Cameras
+    path: cameras
+    icon: mdi:cctv
+    type: sections
+    max_columns: 2
+    sections:
+      - type: grid
+        cards:
           - type: picture-entity
             entity: camera.10_0_0_72
-            name: Camera
+            name: Driveway
             camera_view: live
             show_state: false
             grid_options:
               columns: full
+      - type: grid
+        cards:
           - type: picture-entity
             entity: camera.radar_wu_ohio_current
             name: Radar
@@ -307,44 +414,35 @@ views:
             grid_options:
               columns: full
 
-      # 8. Media
+  # ---------------------------------------------------------------- Media
+  - title: Media
+    path: media
+    icon: mdi:television-play
+    type: sections
+    max_columns: 2
+    sections:
       - type: grid
         cards:
           - type: heading
             heading: Media
             icon: mdi:television-play
-          - type: media-control
+          - type: tile
             entity: media_player.living_room_apple_tv
             name: Living room Apple TV
-          - type: media-control
+            grid_options:
+              columns: full
+          - type: tile
             entity: media_player.loft
             name: Loft Apple TV
-          - type: media-control
+            grid_options:
+              columns: full
+          - type: tile
             entity: media_player.tv
             name: Samsung TV
-          - type: media-control
+            grid_options:
+              columns: full
+          - type: tile
             entity: media_player.home_theater
             name: Denon
-
-      # 9. Car (Nissan Rogue: no battery/range sensors exist; lock + doors only)
-      - type: grid
-        cards:
-          - type: heading
-            heading: Rogue
-            icon: mdi:car
-          - type: tile
-            entity: lock.jn8bt3dd1tw486371_lock
-            name: Car lock
-            tap_action:
-              action: toggle
-              confirmation:
-                text: Lock/unlock the car?
-            icon_tap_action:
-              action: toggle
-              confirmation:
-                text: Lock/unlock the car?
-            hold_action:
-              action: none
-          - type: tile
-            entity: binary_sensor.jn8bt3dd1tw486371_hatch
-            name: Hatch
+            grid_options:
+              columns: full
