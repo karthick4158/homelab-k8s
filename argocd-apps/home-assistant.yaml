@@ -1,0 +1,19 @@
+# Home Assistant at ha.homelab.lan (apps/home-assistant). Starts at 0 replicas.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: home-assistant
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:karthick4158/homelab-k8s.git
+    targetRevision: main
+    path: apps/home-assistant
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: home-assistant
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

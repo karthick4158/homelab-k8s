@@ -211,6 +211,35 @@ kubeadm init --pod-network-cidr=10.244.0.0/16 \
 - Config lives in the `esphome-config` PVC (2Gi, local-path) at `/config`. The old config from
   VM 101 can be copied in later (`kubectl cp`) by K.
 
+## Home Assistant
+
+- `apps/home-assistant/`, Argo app `argocd-apps/home-assistant.yaml`, route ha.homelab.lan.
+  Image pinned to `ghcr.io/home-assistant/home-assistant:2026.11.0`.
+- Runs with `hostNetwork: true` pinned to k8s-worker-1 so LAN discovery (mDNS/SSDP) works. The
+  ConBee Zigbee stick is passed through in Proxmox to VM 202 and mounted at `/dev/ttyACM0`
+  (container is privileged for it). Config in the `home-assistant-config` PVC (10Gi, local-path).
+- Starts at `replicas: 0`; the instance on VM 101 stays live. Argo self-heal reverts
+  `kubectl scale`, so the replica count only changes in Git.
+- The Homepage Home Assistant card still points at the old instance; update it at cutover.
+
+Cutover outline:
+
+1. On VM 101, stop the `homeassistant`, `restarter_ha` and `watchtower` containers.
+2. Copy the old HA config into the `home-assistant-config` PVC.
+3. In Proxmox, move the ConBee USB device from VM 101 to VM 202; check `/dev/ttyACM0` exists on
+   k8s-worker-1.
+4. Set `replicas: 1` in `apps/home-assistant/home-assistant.yaml`, commit, push, let Argo sync.
+
+HA rejects proxied requests unless Traefik is trusted. `configuration.yaml` needs:
+
+```yaml
+http:
+  use_x_forwarded_for: true
+  trusted_proxies:
+    - 10.0.0.89
+    - 10.244.0.0/16
+```
+
 ## Updating images by hand
 
 - Versions live in the repo: container image tags in the `image:` lines under `apps/` and
