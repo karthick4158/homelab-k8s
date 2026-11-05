@@ -20,7 +20,7 @@ spec:
       serviceAccountName: dozzle  # rbac.yaml
       containers:
         - name: dozzle
-          image: amir20/dozzle:v11.4.0  # pin to a version once scripts/check-updates.sh has run
+          image: amir20/dozzle:v11.4.1  # pin to a version once scripts/check-updates.sh has run
           ports:
             - name: http
               containerPort: 8080
