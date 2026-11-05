@@ -23,7 +23,7 @@ layout:
     icon: mdi-kubernetes
   Network:
     style: row
-    columns: 2
+    columns: 3
     icon: mdi-lan
   Home:
     style: row
