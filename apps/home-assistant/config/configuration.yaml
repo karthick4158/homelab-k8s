@@ -26,14 +26,6 @@ input_boolean:
     icon: mdi:sprinkler
 
 
-mqtt:
-  sensor:
-    - name: "Car Detected"
-      state_topic: "stat/parkasst/cardetected"
-    - name: "Office Temperature"
-      state_topic: "Office_Temperature"
-
-
 group: !include groups.yaml
 automation: !include automations.yaml
 script: !include scripts.yaml
