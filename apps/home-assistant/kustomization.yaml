@@ -6,3 +6,11 @@ namespace: home-assistant
 resources:
   - namespace.yaml
   - home-assistant.yaml
+
+configMapGenerator:
+  # Hand-edited HA config, versioned in Git; a change rolls the pod (hash suffix).
+  # UI-written files (automations/scripts/scenes/groups.yaml, .storage) and secrets.yaml
+  # stay on the home-assistant-config PVC.
+  - name: ha-config
+    files:
+      - config/configuration.yaml

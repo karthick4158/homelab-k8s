@@ -240,6 +240,21 @@ http:
     - 10.244.0.0/16
 ```
 
+HA config in Git:
+
+- `configuration.yaml` lives in `apps/home-assistant/config/`. Kustomize turns it into the
+  `ha-config` ConfigMap, mounted read-only with `subPath` at `/config/configuration.yaml` over
+  the PVC copy. HA's file editor can't save it.
+- Edit workflow: edit the file in the repo, commit, push; Argo syncs, the ConfigMap hash changes
+  and the pod restarts with the new config. A broken file puts HA in recovery mode; fix or
+  revert it in Git.
+- Stay on the PVC on purpose (HA's UI writes them): `automations.yaml`, `scripts.yaml`,
+  `scenes.yaml`, `groups.yaml`, `.storage/`, `themes/`, `govee_learning.yaml`, the databases.
+- `secrets.yaml` stays on the PVC and is never in Git; use `!secret name` in the Git copy and
+  add the value to `/config/secrets.yaml` on the PVC.
+- To add another hand-edited file (e.g. a `packages/` dir), add it under `config/`, add it to the
+  generator (separate generator for a directory, mounted at `/config/<dir>`), and mount it.
+
 ## Updating images by hand
 
 - Versions live in the repo: container image tags in the `image:` lines under `apps/` and

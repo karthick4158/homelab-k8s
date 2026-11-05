@@ -1,0 +1,106 @@
+# Configure a default setup of Home Assistant (frontend, api, etc)
+default_config:
+
+frontend:
+  themes: !include_dir_merge_named themes
+
+
+# Example configuration.yaml entry
+timer:
+  sprinklertimer:
+    duration: "00:00:00"
+
+input_number:
+  example_number:
+    name: Watering Time
+    initial: 59
+    min: 1
+    max: 120
+    step: 1
+    unit_of_measurement: minutes
+
+input_boolean:
+  enable_alternate_day_sprinkler:
+    name: Enable Alternate Day Sprinkler
+    initial: off
+    icon: mdi:sprinkler
+
+# influxdb:
+#   host: 10.0.0.72
+#   port: 8086
+#   default_measurement: state
+#include:
+#domains:
+#- sensor
+# Text to speech
+# tts:
+#   - platform: google_translate
+#     cache: true
+#     cache_dir: /tmp/tts
+#     time_memory: 300
+#     base_url: http://10.0.0.34:8123
+#     service_name: google_say
+
+mqtt:
+  sensor:
+    - name: "Car Detected"
+      state_topic: "stat/parkasst/cardetected"
+    - name: "Office Temperature"
+      state_topic: "Office_Temperature"
+
+
+group: !include groups.yaml
+automation: !include automations.yaml
+script: !include scripts.yaml
+scene: !include scenes.yaml
+
+# Example configuration.yaml entry configuring HomeKit
+homekit:
+  - name: Home Assistant Bridge
+    port: 21063
+    filter:
+      include_domains:
+        - alarm_control_panel
+        - light
+        - media_player
+      include_entity_globs:
+        - binary_sensor.*_occupancy
+      include_entities:
+        - binary_sensor.living_room_motion
+        - cover.office_blind_window_covering
+        - light.garage_door
+        - light.backyard
+        - light.strip_light
+        - light.garage_1
+        - light.stovetop_light
+        - light.guestbathnightlight
+        - switch.rice_cooker
+        - switch.coat_room_led
+        - switch.laundry
+        - switch.mb_closet
+        - switch.office_closet
+        - switch.pantry
+        - switch.shelly1_e8db84acc31f
+        - switch.shelly1_e8db84ac7d25
+        - switch.front_porch
+        - switch.tv
+        - switch.work_plug
+        - switch.shelly1_e8db84ac7d25
+        - switch.tp_link_smart_plug_59e6_workstation
+        - switch.tp_link_smart_plug_59e6_homeserver
+        - sensor.lumi_lumi_remote_b1acn01_power
+        - sensor.office_blind_power
+        - input_select.homekit_presence_detection
+        - input_boolean.enable_alternate_day_sprinkler
+        - media_player.home_theater
+        - switch.z_main_switch_c1
+        - switch.z_c2_main_switch
+        - button.jn8bt3dd1tw486371_remote_start
+        - button.jn8bt3dd1tw486371_remote_stop
+        - button.jn8bt3dd1tw486371_remote_unlock
+        - lock.jn8bt3dd1tw486371_lock
+http:
+  use_x_forwarded_for: true
+  trusted_proxies:
+    - 10.0.0.89
+    - 10.244.0.0/16

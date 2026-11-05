@@ -69,12 +69,20 @@ spec:
           volumeMounts:
             - name: config
               mountPath: /config
+            # Git-managed file shadows the PVC copy; read-only in HA's file editor.
+            - name: ha-config
+              mountPath: /config/configuration.yaml
+              subPath: configuration.yaml
+              readOnly: true
             - name: zigbee
               mountPath: /dev/ttyACM0
       volumes:
         - name: config
           persistentVolumeClaim:
             claimName: home-assistant-config
+        - name: ha-config
+          configMap:
+            name: ha-config
         - name: zigbee
           hostPath:
             path: /dev/ttyACM0
