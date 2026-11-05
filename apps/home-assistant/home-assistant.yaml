@@ -20,7 +20,7 @@ metadata:
     app: home-assistant
 spec:
   # Argo CD self-heal reverts `kubectl scale`, so cutover = change this to 1 in Git.
-  replicas: 0
+  replicas: 1
   strategy:
     type: Recreate  # RWO volume, host port 8123
   selector:
