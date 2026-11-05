@@ -1,9 +1,9 @@
 # Wall dashboard for the 10" Fire tablet (Fully Kiosk, landscape ~1280x800). Served at /wall-kiosk.
 # Git-managed and mounted read-only: edit here, not in the HA UI. Built-in cards only.
-# Layout rules: every view fits one screen with no scrolling; max_columns 3 (4 clips at 1280 px;
-# Lights still uses 4 and is due the same treatment);
-# sections in a view are about the same height; every section holds an even number of tiles in
-# 2 equal columns, all the same height, each with an explicit mdi icon.
+# Layout rules: every view fits one screen with no scrolling; max_columns 3 everywhere (4 clips
+# at 1280 px); sections in a view are about the same height; tiles sit in pairs of 2 equal
+# columns, all the same height, each with an explicit mdi icon (the Home garage button is the
+# one deliberate exception: a big half-width button beside a 3-tile stack).
 title: Wall
 views:
   # ---------------------------------------------------------------- Home
@@ -59,63 +59,81 @@ views:
             grid_options:
               columns: full
 
-      # Right: doors, then the car. Door sensors use a fixed icon (the state icon
-      # rendered blank on the tablet); the tile still shows Open/Closed and colours when open.
+      # Right: garage and car. Big garage-door button (icon follows state via two
+      # conditional cards, exactly one visible) beside a stack of the three small tiles,
+      # so both halves are 3 rows tall. Fixed icons everywhere (state icons rendered
+      # blank on the tablet); tiles still show Open/Closed and colour when open.
       - type: grid
         cards:
           - type: heading
-            heading: Doors
-            icon: mdi:door
-          - type: tile
-            entity: cover.garage_2
-            name: Garage door
+            heading: Garage & car
             icon: mdi:garage
-            tap_action: &garage_toggle
-              action: toggle
-              confirmation:
-                text: Open/close the garage?
-            icon_tap_action: *garage_toggle
-            hold_action:
-              action: none
-          - type: tile
-            entity: binary_sensor.lumi_lumi_sensor_magnet_aq2_8c1ad107_on_off
-            name: Garage entry
-            icon: mdi:door
-          - type: tile
-            entity: binary_sensor.lumi_lumi_sensor_magnet_aq2_on_off
-            name: Coat room
-            icon: mdi:door
-          - type: tile
-            entity: binary_sensor.lumi_lumi_sensor_magnet_aq2_7c2abf07_on_off
-            name: Laundry
-            icon: mdi:door
-          - type: tile
-            entity: binary_sensor.lumi_lumi_sensor_magnet_aq2_372abf07_on_off
-            name: Pantry
-            icon: mdi:door
-          - type: tile
-            entity: binary_sensor.lumi_lumi_sensor_magnet_aq2_14481007_on_off
-            name: Office closet
-            icon: mdi:door
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: cover.garage_2
+                state: closed
+            grid_options: &garage_size
+              columns: 6
+              rows: 3
+            card:
+              type: button
+              entity: cover.garage_2
+              name: Garage door
+              icon: mdi:garage
+              icon_height: 80px
+              show_name: true
+              show_state: true
+              state_color: true
+              tap_action: &garage_toggle
+                action: toggle
+                confirmation:
+                  text: Open/close the garage?
+              hold_action:
+                action: none
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: cover.garage_2
+                state_not: closed
+            grid_options: *garage_size
+            card:
+              type: button
+              entity: cover.garage_2
+              name: Garage door
+              icon: mdi:garage-open
+              icon_height: 80px
+              show_name: true
+              show_state: true
+              state_color: true
+              tap_action: *garage_toggle
+              hold_action:
+                action: none
           # Nissan Rogue: no battery/range sensors exist; lock + hatch only.
-          - type: heading
-            heading: Car
-            icon: mdi:car
-          - type: tile
-            entity: lock.jn8bt3dd1tw486371_lock
-            name: Car lock
-            icon: mdi:car-key
-            tap_action: &car_toggle
-              action: toggle
-              confirmation:
-                text: Lock/unlock the car?
-            icon_tap_action: *car_toggle
-            hold_action:
-              action: none
-          - type: tile
-            entity: binary_sensor.jn8bt3dd1tw486371_hatch
-            name: Car hatch
-            icon: mdi:car-back
+          - type: vertical-stack
+            grid_options:
+              columns: 6
+              rows: 3
+            cards:
+              - type: tile
+                entity: binary_sensor.lumi_lumi_sensor_magnet_aq2_8c1ad107_on_off
+                name: Garage entry
+                icon: mdi:door
+              - type: tile
+                entity: lock.jn8bt3dd1tw486371_lock
+                name: Car lock
+                icon: mdi:car-key
+                tap_action: &car_toggle
+                  action: toggle
+                  confirmation:
+                    text: Lock/unlock the car?
+                icon_tap_action: *car_toggle
+                hold_action:
+                  action: none
+              - type: tile
+                entity: binary_sensor.jn8bt3dd1tw486371_hatch
+                name: Car hatch
+                icon: mdi:car-back
 
   # ---------------------------------------------------------------- Climate
   # Two sections, both 4 tile-rows tall: thermostats (2-row tiles) and laundry.
@@ -198,7 +216,7 @@ views:
     path: lights
     icon: mdi:lightbulb-group
     type: sections
-    max_columns: 4
+    max_columns: 3
     sections:
       - type: grid
         cards:
