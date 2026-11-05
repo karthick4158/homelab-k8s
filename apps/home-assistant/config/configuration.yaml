@@ -7,7 +7,7 @@ frontend:
 # Wall dashboard for the Fire tablet (Fully Kiosk). Git-managed file, mounted read-only.
 lovelace:
   dashboards:
-    kiosk:
+    wall-kiosk:
       mode: yaml
       title: Wall
       icon: mdi:tablet-dashboard

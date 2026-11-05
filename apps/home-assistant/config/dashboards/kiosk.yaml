@@ -1,4 +1,4 @@
-# Wall dashboard for the 10" Fire tablet (Fully Kiosk, landscape). Served at /kiosk.
+# Wall dashboard for the 10" Fire tablet (Fully Kiosk, landscape). Served at /wall-kiosk.
 # Git-managed and mounted read-only: edit here, not in the HA UI. Built-in cards only.
 title: Wall
 views:
