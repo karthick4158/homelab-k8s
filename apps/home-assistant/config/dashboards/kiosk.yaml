@@ -1,7 +1,9 @@
 # Wall dashboard for the 10" Fire tablet (Fully Kiosk, landscape ~1280x800). Served at /wall-kiosk.
 # Git-managed and mounted read-only: edit here, not in the HA UI. Built-in cards only.
-# Layout rule: every view must fit on one screen with no scrolling. Prefer tiles; add a view
-# rather than growing one.
+# Layout rules: every view fits one screen with no scrolling; max_columns 3 (4 clips at 1280 px;
+# Lights still uses 4 and is due the same treatment);
+# sections in a view are about the same height; every section holds an even number of tiles in
+# 2 equal columns, all the same height, each with an explicit mdi icon.
 title: Wall
 views:
   # ---------------------------------------------------------------- Home
@@ -9,8 +11,9 @@ views:
     path: home
     icon: mdi:home
     type: sections
-    max_columns: 4
+    max_columns: 3
     sections:
+      # Left: clock, weather, who's home.
       - type: grid
         cards:
           - type: markdown
@@ -32,37 +35,32 @@ views:
           - type: tile
             entity: person.karthick
             name: Karthick
+            icon: mdi:account
           - type: tile
             entity: sensor.fire_tablet_battery
             name: Tablet
+            icon: mdi:tablet
 
+      # Middle: cameras.
       - type: grid
         cards:
-          - type: heading
-            heading: Climate
-            icon: mdi:thermostat
-          - type: tile
-            entity: climate.living_room
-            name: Living Room
+          - type: picture-entity
+            entity: camera.10_0_0_72
+            name: Driveway
+            camera_view: live
+            show_state: false
             grid_options:
               columns: full
-            features: &climate_features
-              - type: target-temperature
-              - type: climate-hvac-modes
-                style: icons
-                hvac_modes: ["off", heat, cool, heat_cool, auto]
-          - type: tile
-            entity: climate.loft
-            name: Loft
-            grid_options:
-              columns: full
-            features: *climate_features
-          - type: tile
-            entity: sensor.bedroom_temperature
-            name: Bedroom
+          - type: picture-entity
+            entity: camera.radar_wu_ohio_current
+            name: Radar
+            camera_view: auto
+            show_state: false
             grid_options:
               columns: full
 
+      # Right: doors, then the car. Door sensors use a fixed icon (the state icon
+      # rendered blank on the tablet); the tile still shows Open/Closed and colours when open.
       - type: grid
         cards:
           - type: heading
@@ -71,6 +69,7 @@ views:
           - type: tile
             entity: cover.garage_2
             name: Garage door
+            icon: mdi:garage
             tap_action: &garage_toggle
               action: toggle
               confirmation:
@@ -78,27 +77,34 @@ views:
             icon_tap_action: *garage_toggle
             hold_action:
               action: none
-            grid_options:
-              columns: full
           - type: tile
             entity: binary_sensor.lumi_lumi_sensor_magnet_aq2_8c1ad107_on_off
             name: Garage entry
+            icon: mdi:door
           - type: tile
             entity: binary_sensor.lumi_lumi_sensor_magnet_aq2_on_off
             name: Coat room
+            icon: mdi:door
           - type: tile
             entity: binary_sensor.lumi_lumi_sensor_magnet_aq2_7c2abf07_on_off
             name: Laundry
+            icon: mdi:door
           - type: tile
             entity: binary_sensor.lumi_lumi_sensor_magnet_aq2_372abf07_on_off
             name: Pantry
+            icon: mdi:door
           - type: tile
             entity: binary_sensor.lumi_lumi_sensor_magnet_aq2_14481007_on_off
             name: Office closet
+            icon: mdi:door
           # Nissan Rogue: no battery/range sensors exist; lock + hatch only.
+          - type: heading
+            heading: Car
+            icon: mdi:car
           - type: tile
             entity: lock.jn8bt3dd1tw486371_lock
-            name: Car
+            name: Car lock
+            icon: mdi:car-key
             tap_action: &car_toggle
               action: toggle
               confirmation:
@@ -109,6 +115,45 @@ views:
           - type: tile
             entity: binary_sensor.jn8bt3dd1tw486371_hatch
             name: Car hatch
+            icon: mdi:car-back
+
+  # ---------------------------------------------------------------- Climate
+  # Two sections, both 4 tile-rows tall: thermostats (2-row tiles) and laundry.
+  - title: Climate
+    path: climate
+    icon: mdi:thermostat
+    type: sections
+    max_columns: 3
+    sections:
+      - type: grid
+        cards:
+          - type: heading
+            heading: Climate
+            icon: mdi:thermostat
+          - type: tile
+            entity: climate.living_room
+            name: Living Room
+            icon: mdi:thermostat
+            features: &climate_features
+              - type: target-temperature
+          - type: tile
+            entity: climate.loft
+            name: Loft
+            icon: mdi:thermostat
+            features: *climate_features
+          - type: tile
+            entity: sensor.bedroom_temperature
+            name: Bedroom
+            icon: mdi:thermometer
+            grid_options:
+              rows: 2
+          - type: tile
+            entity: weather.home
+            name: Outside
+            icon: mdi:sun-thermometer
+            state_content: [temperature, state]
+            grid_options:
+              rows: 2
 
       - type: grid
         cards:
@@ -126,21 +171,27 @@ views:
           - type: tile
             entity: sensor.washer_job_state
             name: Washer job
+            icon: mdi:timer-outline
           - type: tile
             entity: sensor.dryer_job_state
             name: Dryer job
+            icon: mdi:timer-outline
           - type: tile
             entity: sensor.living_room_washer_progress
-            name: Washer %
+            name: Washer progress
+            icon: mdi:progress-clock
           - type: tile
             entity: sensor.living_room_dryer_progress
-            name: Dryer %
+            name: Dryer progress
+            icon: mdi:progress-clock
           - type: tile
             entity: sensor.washer_completion_time
             name: Washer done
+            icon: mdi:clock-check-outline
           - type: tile
             entity: sensor.dryer_completion_time
             name: Dryer done
+            icon: mdi:clock-check-outline
 
   # ---------------------------------------------------------------- Lights
   - title: Lights
@@ -311,7 +362,7 @@ views:
     path: water
     icon: mdi:sprinkler-variant
     type: sections
-    max_columns: 2
+    max_columns: 3
     sections:
       - type: grid
         cards:
@@ -388,38 +439,12 @@ views:
             tap_action: *zone_toggle
             icon_tap_action: *zone_toggle
 
-  # ---------------------------------------------------------------- Cameras
-  - title: Cameras
-    path: cameras
-    icon: mdi:cctv
-    type: sections
-    max_columns: 2
-    sections:
-      - type: grid
-        cards:
-          - type: picture-entity
-            entity: camera.10_0_0_72
-            name: Driveway
-            camera_view: live
-            show_state: false
-            grid_options:
-              columns: full
-      - type: grid
-        cards:
-          - type: picture-entity
-            entity: camera.radar_wu_ohio_current
-            name: Radar
-            camera_view: auto
-            show_state: false
-            grid_options:
-              columns: full
-
   # ---------------------------------------------------------------- Media
   - title: Media
     path: media
     icon: mdi:television-play
     type: sections
-    max_columns: 2
+    max_columns: 3
     sections:
       - type: grid
         cards:
