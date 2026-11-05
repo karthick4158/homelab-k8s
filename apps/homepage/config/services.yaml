@@ -201,16 +201,17 @@
           password: "{{HOMEPAGE_VAR_ADGUARD_PASS}}"
 
 - Home:
-    # TODO: Home Assistant runs on VM 101; its address is not in this repo.
-    # Put the URL (e.g. http://10.0.0.x:8123) in HOMEPAGE_VAR_HA_URL.
     - Home Assistant:
         icon: si-homeassistant
-        href: "{{HOMEPAGE_VAR_HA_URL}}"
+        href: https://ha.homelab.lan
         description: Home automation
+        namespace: home-assistant
+        podSelector: app=home-assistant
         widget:
           type: homeassistant
-          url: "{{HOMEPAGE_VAR_HA_URL}}"
-          key: "{{HOMEPAGE_VAR_HA_TOKEN}}"
+          url: http://home-assistant.home-assistant.svc.cluster.local:8123
+          key: "{{HOMEPAGE_VAR_HOMEASSISTANT_TOKEN}}"
+          fields: [people_home, lights_on, switches_on]
     - ESPHome:
         icon: esphome
         href: https://esphome.homelab.lan
