@@ -20,6 +20,11 @@ server:
     path: "/database/quantum.db"
   # Thumbnails and the search index (emptyDir, rebuilt after a restart).
   cacheDir: "/cache"
+  # One preview job at a time (default 4). Upstream derives the ffmpeg limit
+  # from this as (n+1)/2, so 1 also means a single ffmpeg process
+  # (backend/pkg/settings/config.go setupFFmpegIntegration). Video thumbnails
+  # stay enabled; this only queues them instead of running them in parallel.
+  numImageProcessors: 1
   # New files/folders writable by the library's "users" group (gid 100).
   # The pod's umask is set to 002 so these modes are not masked to 644/755.
   filesystem:

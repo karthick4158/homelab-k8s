@@ -78,12 +78,16 @@ spec:
             initialDelaySeconds: 15
             periodSeconds: 30
             timeoutSeconds: 5
+          # 512Mi was OOMKilled ~40 s after start while generating video
+          # thumbnails of 4K HDR remuxes. 2Gi is a ceiling, not a reservation:
+          # worker-1 (8 GB) is shared with Plex, Jellyfin and downloads.
+          # Preview concurrency is capped by numImageProcessors in the config.
           resources:
             requests:
               cpu: 10m
-              memory: 64Mi
+              memory: 256Mi
             limits:
-              memory: 512Mi
+              memory: 2Gi
           securityContext:
             allowPrivilegeEscalation: false
       volumes:
