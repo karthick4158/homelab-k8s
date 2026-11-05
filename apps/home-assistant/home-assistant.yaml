@@ -74,6 +74,10 @@ spec:
               mountPath: /config/configuration.yaml
               subPath: configuration.yaml
               readOnly: true
+            - name: ha-config
+              mountPath: /config/dashboards/kiosk.yaml
+              subPath: kiosk.yaml
+              readOnly: true
             - name: zigbee
               mountPath: /dev/ttyACM0
       volumes:

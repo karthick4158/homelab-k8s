@@ -14,3 +14,4 @@ configMapGenerator:
   - name: ha-config
     files:
       - config/configuration.yaml
+      - config/dashboards/kiosk.yaml

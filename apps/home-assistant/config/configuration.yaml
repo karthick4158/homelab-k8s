@@ -4,6 +4,17 @@ default_config:
 frontend:
   themes: !include_dir_merge_named themes
 
+# Wall dashboard for the Fire tablet (Fully Kiosk). Git-managed file, mounted read-only.
+lovelace:
+  dashboards:
+    kiosk:
+      mode: yaml
+      title: Wall
+      icon: mdi:tablet-dashboard
+      show_in_sidebar: true
+      require_admin: false
+      filename: dashboards/kiosk.yaml
+
 
 # Example configuration.yaml entry
 timer:

@@ -1,0 +1,350 @@
+# Wall dashboard for the 10" Fire tablet (Fully Kiosk, landscape). Served at /kiosk.
+# Git-managed and mounted read-only: edit here, not in the HA UI. Built-in cards only.
+title: Wall
+views:
+  - title: Home
+    path: home
+    icon: mdi:home
+    type: sections
+    max_columns: 4
+    dense_section_placement: true
+    sections:
+      # 1. Clock, weather, who is home
+      - type: grid
+        cards:
+          - type: markdown
+            text_only: true
+            grid_options:
+              columns: full
+            content: >-
+              <h1><ha-icon icon="mdi:clock-outline"></ha-icon>
+              {{ now().strftime('%-I:%M %p') }}</h1>
+              {{ now().strftime('%A, %B %-d') }}
+          - type: weather-forecast
+            entity: weather.home
+            forecast_type: daily
+            show_current: true
+            show_forecast: true
+            grid_options:
+              columns: full
+          - type: tile
+            entity: person.karthick
+            name: Karthick
+          - type: tile
+            entity: sensor.fire_tablet_battery
+            name: Tablet battery
+          - type: tile
+            entity: number.fire_tablet_screen_brightness
+            name: Brightness
+            grid_options:
+              columns: full
+            features:
+              - type: numeric-input
+                style: slider
+
+      # 2. Climate
+      - type: grid
+        cards:
+          - type: heading
+            heading: Climate
+            icon: mdi:thermostat
+          - type: thermostat
+            entity: climate.living_room
+            name: Living Room
+          - type: thermostat
+            entity: climate.loft
+            name: Loft
+          - type: tile
+            entity: sensor.bedroom_temperature
+            name: Bedroom
+          - type: tile
+            entity: sensor.office_temperature
+            name: Office
+
+      # 3. Doors and garage
+      - type: grid
+        cards:
+          - type: heading
+            heading: Doors & Garage
+            icon: mdi:garage
+          - type: tile
+            entity: cover.garage_2
+            name: Garage door
+            icon_tap_action:
+              action: toggle
+              confirmation:
+                text: Open/close the garage?
+            tap_action:
+              action: toggle
+              confirmation:
+                text: Open/close the garage?
+            hold_action:
+              action: none
+            grid_options:
+              columns: full
+          - type: tile
+            entity: binary_sensor.lumi_lumi_sensor_magnet_aq2_8c1ad107_on_off
+            name: Garage entry
+          - type: tile
+            entity: binary_sensor.lumi_lumi_sensor_magnet_aq2_on_off
+            name: Coat room
+          - type: tile
+            entity: binary_sensor.lumi_lumi_sensor_magnet_aq2_7c2abf07_on_off
+            name: Laundry
+          - type: tile
+            entity: binary_sensor.lumi_lumi_sensor_magnet_aq2_372abf07_on_off
+            name: Pantry
+          - type: tile
+            entity: binary_sensor.lumi_lumi_sensor_magnet_aq2_14481007_on_off
+            name: Office closet
+
+      # 4. Laundry
+      - type: grid
+        cards:
+          - type: heading
+            heading: Laundry
+            icon: mdi:washing-machine
+          - type: tile
+            entity: sensor.washer_machine_state
+            name: Washer
+            icon: mdi:washing-machine
+          - type: tile
+            entity: sensor.dryer_machine_state
+            name: Dryer
+            icon: mdi:tumble-dryer
+          - type: tile
+            entity: sensor.washer_job_state
+            name: Washer job
+          - type: tile
+            entity: sensor.dryer_job_state
+            name: Dryer job
+          - type: tile
+            entity: sensor.living_room_washer_progress
+            name: Washer progress
+          - type: tile
+            entity: sensor.living_room_dryer_progress
+            name: Dryer progress
+          - type: tile
+            entity: sensor.washer_completion_time
+            name: Washer done
+          - type: tile
+            entity: sensor.dryer_completion_time
+            name: Dryer done
+
+      # 5. Lights and plugs
+      - type: grid
+        cards:
+          - type: heading
+            heading: Lights
+            icon: mdi:lightbulb-group
+          - type: tile
+            entity: light.backyard
+            name: Backyard
+          - type: tile
+            entity: light.garage_door
+            name: Garage door
+          - type: tile
+            entity: light.strip_light
+            name: Cabinet strip
+          - type: tile
+            entity: light.stovetop_light
+            name: Stove top
+          - type: tile
+            entity: light.office_zig1_level_on_off
+            name: Office
+          - type: tile
+            entity: light.h6199_4d1f
+            name: TV backlight
+          - type: tile
+            entity: light.powderroom_1
+            name: Powder room
+          - type: tile
+            entity: light.smart_bulb_2
+            name: Smart bulb 2
+          - type: tile
+            entity: light.guestbath1
+            name: Guest bath 1
+          - type: tile
+            entity: light.guestbath2
+            name: Guest bath 2
+          - type: tile
+            entity: light.guestbath3
+            name: Guest bath 3
+          - type: tile
+            entity: light.mb1
+            name: MB 1
+          - type: tile
+            entity: light.mb2
+            name: MB 2
+          - type: tile
+            entity: light.mb3
+            name: MB 3
+          - type: tile
+            entity: light.mb4
+            name: MB 4
+          - type: button
+            entity: scene.kitchen_cabinet_light
+            name: Cabinet scene
+            tap_action:
+              action: perform-action
+              perform_action: scene.turn_on
+              target:
+                entity_id: scene.kitchen_cabinet_light
+          - type: button
+            entity: scene.stove_lights_switch_on
+            name: Stove lights
+            tap_action:
+              action: perform-action
+              perform_action: scene.turn_on
+              target:
+                entity_id: scene.stove_lights_switch_on
+          - type: button
+            entity: scene.stove_light_red
+            name: Stove red
+            tap_action:
+              action: perform-action
+              perform_action: scene.turn_on
+              target:
+                entity_id: scene.stove_light_red
+
+      - type: grid
+        cards:
+          - type: heading
+            heading: Switches & Plugs
+            icon: mdi:power-socket-us
+          - type: tile
+            entity: switch.coat_room
+            name: Coat room
+          - type: tile
+            entity: switch.laundry
+            name: Laundry
+          - type: tile
+            entity: switch.mb_closet
+            name: MB closet
+          - type: tile
+            entity: switch.office_closet
+            name: Office closet
+          - type: tile
+            entity: switch.pantry
+            name: Pantry
+          - type: tile
+            entity: switch.rice_cooker
+            name: Rice cooker
+          - type: tile
+            entity: switch.tv
+            name: TV plug
+          - type: tile
+            entity: switch.projector
+            name: Projector
+          - type: tile
+            entity: switch.iphone_charger
+            name: iPhone charger
+          - type: tile
+            entity: switch.vaccum_charger
+            name: Vacuum charger
+
+      # 6. Sprinklers
+      - type: grid
+        cards:
+          - type: heading
+            heading: Sprinklers
+            icon: mdi:sprinkler-variant
+          - type: tile
+            entity: switch.sprinkler_controller_01_sprinkler_01
+            name: Zone 01
+          - type: tile
+            entity: switch.sprinkler_controller_01_sprinkler_02
+            name: Zone 02
+          - type: tile
+            entity: switch.sprinkler_controller_01_sprinkler_03
+            name: Zone 03
+          - type: tile
+            entity: switch.sprinkler_controller_01_sprinkler_04
+            name: Zone 04
+          - type: tile
+            entity: switch.sprinkler_5
+            name: Zone 5
+          - type: tile
+            entity: switch.sprinkler_6
+            name: Zone 6
+          - type: tile
+            entity: switch.sprinkler_7
+            name: Zone 7
+          - type: tile
+            entity: switch.sprinkler_8
+            name: Zone 8
+          - type: tile
+            entity: switch.sprinkler_controller_3_sprinkler_1
+            name: C3 Zone 1
+          - type: tile
+            entity: switch.sprinkler_controller_3_sprinkler_2
+            name: C3 Zone 2
+          - type: tile
+            entity: switch.sprinkler_controller_3_sprinkler_3
+            name: C3 Zone 3
+          - type: tile
+            entity: switch.sprinkler_controller_3_sprinkler_4
+            name: C3 Zone 4
+
+      # 7. Cameras
+      - type: grid
+        cards:
+          - type: heading
+            heading: Cameras
+            icon: mdi:cctv
+          - type: picture-entity
+            entity: camera.10_0_0_72
+            name: Camera
+            camera_view: live
+            show_state: false
+            grid_options:
+              columns: full
+          - type: picture-entity
+            entity: camera.radar_wu_ohio_current
+            name: Radar
+            camera_view: auto
+            show_state: false
+            grid_options:
+              columns: full
+
+      # 8. Media
+      - type: grid
+        cards:
+          - type: heading
+            heading: Media
+            icon: mdi:television-play
+          - type: media-control
+            entity: media_player.living_room_apple_tv
+            name: Living room Apple TV
+          - type: media-control
+            entity: media_player.loft
+            name: Loft Apple TV
+          - type: media-control
+            entity: media_player.tv
+            name: Samsung TV
+          - type: media-control
+            entity: media_player.home_theater
+            name: Denon
+
+      # 9. Car (Nissan Rogue: no battery/range sensors exist; lock + doors only)
+      - type: grid
+        cards:
+          - type: heading
+            heading: Rogue
+            icon: mdi:car
+          - type: tile
+            entity: lock.jn8bt3dd1tw486371_lock
+            name: Car lock
+            tap_action:
+              action: toggle
+              confirmation:
+                text: Lock/unlock the car?
+            icon_tap_action:
+              action: toggle
+              confirmation:
+                text: Lock/unlock the car?
+            hold_action:
+              action: none
+          - type: tile
+            entity: binary_sensor.jn8bt3dd1tw486371_hatch
+            name: Hatch
