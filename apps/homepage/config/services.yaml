@@ -37,6 +37,12 @@
           type: seerr
           url: http://seerr.media.svc.cluster.local:5055
           key: "{{HOMEPAGE_VAR_SEERR_KEY}}"
+    - Media Files:
+        icon: filebrowser
+        href: https://media.homelab.lan
+        description: Media file manager
+        namespace: media
+        podSelector: app=filebrowser
 
 - Downloads:
     # No key: gluetun's auth config (components/gluetun) leaves

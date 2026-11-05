@@ -1,0 +1,123 @@
+# FileBrowser (web file manager for the media library), reached via
+# traefik-gateway at media.homelab.lan (http and https). Mounts the OMV library
+# read-write at /srv. On first start it creates user "admin" and prints a random
+# password in its log: change it at once.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: filebrowser-data
+  namespace: media
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 100Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: filebrowser
+  namespace: media
+  labels:
+    app: filebrowser
+spec:
+  replicas: 1
+  # RWO volume (database): old pod must release it before the new one starts.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: filebrowser
+  template:
+    metadata:
+      labels:
+        app: filebrowser
+    spec:
+      # Same identity as jellyfin's PUID 1000 / PGID 100: OMV squashes root,
+      # so writes go through the library's "users" group (100). No fsGroup:
+      # it would make the kubelet chown the whole NFS library.
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 100
+        runAsNonRoot: true
+      containers:
+        - name: filebrowser
+          image: filebrowser/filebrowser:v2.63.23
+          env:
+            # Defaults of the image's /config/settings.json, made explicit.
+            # Port 8080 instead of 80: the image runs as non-root.
+            - name: FB_PORT
+              value: "8080"
+            - name: FB_ROOT
+              value: /srv
+            - name: FB_DATABASE
+              value: /database/filebrowser.db
+          ports:
+            - name: http
+              containerPort: 8080
+          volumeMounts:
+            - name: data
+              mountPath: /database
+            - name: library
+              mountPath: /srv
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 30
+            timeoutSeconds: 5
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: filebrowser-data
+        - name: library
+          persistentVolumeClaim:
+            claimName: library  # media-library.yaml
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: filebrowser
+  namespace: media
+spec:
+  selector:
+    app: filebrowser
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: filebrowser
+  namespace: media
+spec:
+  parentRefs:
+    - name: traefik-gateway
+      namespace: traefik
+      sectionName: web
+    - name: traefik-gateway
+      namespace: traefik
+      sectionName: websecure
+  hostnames:
+    - media.homelab.lan
+  rules:
+    - backendRefs:
+        - name: filebrowser
+          port: 80

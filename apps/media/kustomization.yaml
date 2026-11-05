@@ -9,6 +9,7 @@ resources:
   - media-library.yaml
   - jellyfin.yaml
   - plex.yaml
+  - filebrowser.yaml
   # One pod (shared VPN) for qBittorrent, Transmission, Radarr, Sonarr and
   # Seerr; the per-app files hold their volumes, Services and routes.
   - downloads.yaml
