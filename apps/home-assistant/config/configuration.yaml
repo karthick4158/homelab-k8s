@@ -25,21 +25,6 @@ input_boolean:
     initial: off
     icon: mdi:sprinkler
 
-# influxdb:
-#   host: 10.0.0.72
-#   port: 8086
-#   default_measurement: state
-#include:
-#domains:
-#- sensor
-# Text to speech
-# tts:
-#   - platform: google_translate
-#     cache: true
-#     cache_dir: /tmp/tts
-#     time_memory: 300
-#     base_url: http://10.0.0.34:8123
-#     service_name: google_say
 
 mqtt:
   sensor:
