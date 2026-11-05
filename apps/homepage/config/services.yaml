@@ -199,6 +199,10 @@
           url: http://10.0.0.65:83
           username: "{{HOMEPAGE_VAR_ADGUARD_USER}}"
           password: "{{HOMEPAGE_VAR_ADGUARD_PASS}}"
+    - Orbi Router:
+        icon: si-netgear
+        href: http://10.0.0.1
+        description: Router
 
 - Home:
     - Home Assistant:
