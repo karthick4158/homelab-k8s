@@ -85,7 +85,6 @@ homekit:
         - switch.front_porch
         - switch.tv
         - switch.work_plug
-        - switch.shelly1_e8db84ac7d25
         - switch.tp_link_smart_plug_59e6_workstation
         - switch.tp_link_smart_plug_59e6_homeserver
         - sensor.lumi_lumi_remote_b1acn01_power
