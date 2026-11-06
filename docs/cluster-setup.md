@@ -103,6 +103,31 @@ kubeadm init --pod-network-cidr=10.244.0.0/16 \
   `grafana-dashboard-home` (label `grafana_dashboard: "1"`) that the Grafana sidecar loads.
   HA exports temperatures in Celsius; the panels convert to °F.
 
+### Proxmox metrics
+
+- prometheus-pve-exporter 3.11.0 (`infrastructure/monitoring/pve-exporter.yaml`, ns `monitoring`,
+  on k8s-worker-1) reads the Proxmox API at https://10.0.0.66:8006 (self-signed, so
+  `PVE_VERIFY_SSL=false`) with the read-only API token `monitoring@pve!grafana`.
+- `infrastructure/monitoring/pve-servicemonitor.yaml` scrapes `/pve` every 60s with
+  `module=default`, `target=10.0.0.66`, `cluster=1`, `node=1`; `instance` is set to 10.0.0.66.
+- Token value: Secret `pve-exporter-token` (key `PVE_TOKEN_VALUE`), made by
+  `infrastructure/monitoring/pve-exporter-token.sops.yaml` (committed with an encrypted placeholder).
+- Proxmox side (once), in the Proxmox UI:
+  1. Datacenter > Permissions > Users > Add: user `monitoring`, Realm "Proxmox VE authentication
+     server" (`monitoring@pve`). No password needed.
+  2. Datacenter > Permissions > API Tokens > Add: user `monitoring@pve`, Token ID `grafana`, leave
+     Privilege Separation checked. Copy the secret (shown once).
+  3. Datacenter > Permissions > Add > API Token Permission: path `/`, token `monitoring@pve!grafana`,
+     role `PVEAuditor`, Propagate checked.
+- Then, from the repo root (zsh; reads the token without echoing it, skips an empty input):
+  `read -rs 'TOKEN?PVE token: '; echo; [[ -n $TOKEN ]] && printf '%s' "$TOKEN" | jq -Rs . | sops set --value-stdin infrastructure/monitoring/pve-exporter-token.sops.yaml '["spec"]["secretTemplates"][0]["stringData"]["PVE_TOKEN_VALUE"]'; unset TOKEN`
+  Commit and push. The exporter reads the token at startup:
+  `kubectl -n monitoring rollout restart deployment pve-exporter`.
+- Grafana dashboard "Proxmox": `infrastructure/monitoring/dashboards/proxmox.json`, ConfigMap
+  `grafana-dashboard-proxmox` (label `grafana_dashboard: "1"`). Host CPU/memory/uptime, guests
+  (names from `pve_guest_info`), storage usage by storage name, guests without a backup job. The
+  exporter has no last-backup-time metric.
+
 ### Headlamp
 
 - Kubernetes web UI (pods, logs, events, nodes, workloads). Chart 0.46.0

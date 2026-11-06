@@ -1,0 +1,72 @@
+# prometheus-pve-exporter: reads the Proxmox VE API (https://10.0.0.66:8006) with a read-only API
+# token (monitoring@pve!grafana, PVEAuditor on /) and serves metrics at :9221/pve. Prometheus
+# passes the Proxmox host as ?target=... (see pve-servicemonitor.yaml). Credentials come from env:
+# with PVE_USER set the exporter ignores pve.yml and builds module "default" from PVE_* vars.
+# Only the token value is secret (pve-exporter-token.sops.yaml).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pve-exporter
+  labels:
+    app: pve-exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pve-exporter
+  template:
+    metadata:
+      labels:
+        app: pve-exporter
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: k8s-worker-1  # cp-1 is short on memory
+      containers:
+        - name: pve-exporter
+          image: prompve/prometheus-pve-exporter:3.11.0
+          ports:
+            - name: http
+              containerPort: 9221
+          env:
+            - name: PVE_USER
+              value: monitoring@pve
+            - name: PVE_TOKEN_NAME
+              value: grafana
+            - name: PVE_TOKEN_VALUE
+              valueFrom:
+                secretKeyRef:
+                  name: pve-exporter-token
+                  key: PVE_TOKEN_VALUE
+            - name: PVE_VERIFY_SSL
+              value: "false"  # Proxmox uses its self-signed certificate
+          readinessProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 10m
+              memory: 48Mi
+            limits:
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pve-exporter
+  labels:
+    app: pve-exporter
+spec:
+  selector:
+    app: pve-exporter
+  ports:
+    - name: http
+      port: 9221
+      targetPort: http

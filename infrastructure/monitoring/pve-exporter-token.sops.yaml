@@ -1,0 +1,26 @@
+# Proxmox API token secret for prometheus-pve-exporter (token monitoring@pve!grafana).
+# PLACEHOLDER until set with sops set (see docs/cluster-setup.md, "Proxmox metrics").
+apiVersion: isindir.github.com/v1alpha3
+kind: SopsSecret
+metadata:
+    name: pve-exporter-token
+spec:
+    secretTemplates:
+        - name: pve-exporter-token
+          stringData:
+            PVE_TOKEN_VALUE: ENC[AES256_GCM,data:a0bqHwUocniWf8WHsn/5HYikaInlBmNrXaUIFxQ=,iv:Mortgk0yRZIFEoZyrGEg2sbVOjHIKVXY1hZNM3cCnE0=,tag:6D/co9YODU/n4gPN8oF5UQ==,type:str]
+sops:
+    age:
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBvTDN3UERHLzc2NStOMFVT
+            T2FabzFSek1ZaEhLUHViWXJLVndMM3hoMW5jCkpaZWFMK1ZDQ2tubEFKV1Z6bTdn
+            Q0p0VUN2dXJVRnFidkpqeG1teE8vcmMKLS0tIGhsVEdtWk5ySjZPMk5uQmJ2STlp
+            dlZLL25iRlY2aGRZbjNnRWFYTlFUMVUKfC6Do1rK4SRCIhDaRyXHqLqzF/PCNyeu
+            +V+TKNDlVMF1N1J9MjywQvCaPitLPnlbFOu9O3unCZH5sY/fxFc6zQ==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age1tmzhe2zxesm02xf06al2hgml6tg5srw5ljr8ag9zm223jdswkgvq945ua9
+    encrypted_regex: ^(data|stringData)$
+    lastmodified: "2026-11-06T21:20:04Z"
+    mac: ENC[AES256_GCM,data:dwwaM1MC1wI0aLswAgyt7skRAxqqP4qiuPahCFaFgry6rG7pC+H4rePmetDqgMiKHtd1W1/0HPZ8NDnXTAZcwgh6ScntYwi5WakT/RJc0zxGPR9YSVWOxP0PTXk9bmsQOGnbwXeaiajBk8JE//CQXSt1yMEoR4pXqkXo0b2X2Y8=,iv:xm/80z0HTzWaZNN9RNDIzpmwzmM2cLrE3OtKsKSklkA=,tag:PcOQINSYgGWU3tZNfOJxyA==,type:str]
+    version: 3.13.3
