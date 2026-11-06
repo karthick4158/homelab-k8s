@@ -213,7 +213,7 @@ views:
           - type: picture-entity
             entity: camera.10_0_0_72
             name: Driveway
-            camera_view: auto
+            camera_view: live
             fit_mode: cover
             show_state: false
             grid_options:
