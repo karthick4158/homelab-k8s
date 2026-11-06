@@ -1,25 +1,34 @@
 # Wall dashboard for the 10" Fire tablet (Fully Kiosk, landscape ~1280x800). Served at /wall-kiosk.
-# Git-managed and mounted read-only: edit here, not in the HA UI. Built-in cards only.
+# Git-managed and mounted read-only: edit here, not in the HA UI.
+# Cards: built-in cards plus Mushroom (HACS, custom:mushroom-*) in the style of K's Lawn
+# dashboard. No card-mod.
 # Layout rules: every view fits one screen with no scrolling; max_columns 3 everywhere (4 clips
-# at 1280 px); sections in a view are about the same height; tiles sit in pairs of 2 equal
-# columns, all the same height, each with an explicit mdi icon (exception: the Home indoor
-# temperatures are one row of three equal 1-row tiles).
+# at 1280 px); sections in a view are the same height (row totals stated per view); every card
+# has explicit grid_options rows. A row is ~56 px + 8 px gap, so 10 rows ~ 632 px fills the
+# screen under the header.
+# Sizes used throughout:
+#   mushroom-title-card (title + subtitle)          = full width, 2 rows (~96 px of content)
+#   mushroom-template-card, layout vertical          = 2 rows (6 columns = half width)
+#   mushroom-template-card, horizontal               = 1 row
+# Style (from the Lawn dashboard): icon_color shows state, badge_icon/badge_color confirm it,
+# tap does the main action (toggle), hold opens more-info. Templates use Mushroom's `entity`
+# variable so one YAML anchor serves every card of a kind; cards after the first reuse it with
+# `<<: *anchor` and override entity/primary (explicit keys win over merged ones).
 title: Wall
 views:
   # ---------------------------------------------------------------- Home
-  # Row budget: every column is exactly 10 grid rows (a row is ~56 px + 8 px gap, so
-  # 10 rows ~ 632 px, which fills 1280x800 under the header). Every card has explicit rows.
-  #   Left   = weather 6 + laundry 3 (Washer|Dryer state, progress, done) + temps 1 = 10
-  #   Middle = Driveway 5 + Radar 5                              = 10
-  #   Right  = heading-or-banner 1 + garage door 5 + filter 2 + lock|hatch 2 = 10
-  # Status swaps (packages/wall_panel.yaml) are pairs/triples of conditional cards with the
-  # same grid_options, exactly one visible, so these totals never change:
-  #   washer/dryer: normal tile | green "Done" tile (2 h after a cycle ends)
-  #   garage: green closed | red open | red alert "10+ min" (binary_sensor.wall_garage_open_too_long)
-  #   filter: normal | amber under 20 % | red under 10 %
-  #   right column row 1: "Garage & car" heading | red attention banner (binary_sensor.wall_attention).
-  #   The banner reuses the heading's row instead of adding one: zero extra space when hidden,
-  #   and the right column stays at 10 when shown.
+  # Row budget, every column exactly 10 rows:
+  #   Left   = weather 6 + Washer|Dryer 2 + Living Room|Loft|Bedroom 2            = 10
+  #   Middle = Driveway 5 + Radar 5                                               = 10
+  #   Right  = title 2 (or banner 1 + spacer 1) + garage 4 + filter 2 + lock|hatch 2 = 10
+  # Status swaps (packages/wall_panel.yaml) are conditional cards with the same grid_options,
+  # exactly one visible, so these totals never change:
+  #   washer/dryer: normal card | green "Done" card (2 h after a cycle ends; tap clears it)
+  #   right column rows 1-2: "Garage & car" title (2) | red attention banner (1, unchanged)
+  #   + an empty 1-row spacer, both shown while binary_sensor.wall_attention is on.
+  # The garage open / open-10+-min states and the filter amber/red levels are now icon colour,
+  # icon and badge templates on one Mushroom card each (Mushroom can colour a closed cover,
+  # which the built-in tile could not).
   - title: Home
     path: home
     icon: mdi:home
@@ -29,8 +38,8 @@ views:
       # Left: weather, laundry, indoor temperatures.
       - type: grid
         cards:
-          # The dim forecast day labels / low temps use the theme's secondary text colour;
-          # the built-in weather card has no colour option for them.
+          # Mushroom has no forecast card; the built-in one stays. The dim forecast day labels /
+          # low temps use the theme's secondary text colour (no colour option for them).
           - type: weather-forecast
             entity: weather.home
             forecast_type: daily
@@ -40,9 +49,9 @@ views:
             grid_options:
               columns: full
               rows: 6
-          # Laundry: washer left, dryer right; rows are state, progress, completion time.
-          # Washer and dryer: normal state tile, or a green "Done" tile (time since the
-          # cycle ended) for 2 h. Tapping the Done icon clears it early.
+          # Laundry: one vertical card per machine. While a cycle runs the second line is
+          # progress and completion time (the old progress/completion tiles); otherwise it
+          # is the machine state. Badge: play while running, pause while paused.
           - type: conditional
             conditions:
               - condition: state
@@ -50,25 +59,56 @@ views:
                 state_not: "on"
             grid_options: &laundry_size
               columns: 6
-              rows: 1
-            card:
-              type: tile
+              rows: 2
+            card: &washer
+              type: custom:mushroom-template-card
               entity: sensor.washer_machine_state
-              name: Washer
+              primary: Washer
+              secondary: >-
+                {%- set s = states('sensor.washer_machine_state') -%}
+                {%- set end = as_timestamp(states('sensor.washer_completion_time'), none) -%}
+                {%- if s in ['stop', 'off', 'idle', 'unavailable', 'unknown'] -%}
+                {{ state_translated('sensor.washer_machine_state') }}
+                {%- else -%}
+                {{ states('sensor.living_room_washer_progress', with_unit=True) }}
+                {%- if end %} · {{ end | timestamp_custom('%-I:%M %p') }}{% endif -%}
+                {%- endif -%}
               icon: mdi:washing-machine
+              icon_color: &machine_color >-
+                {%- set s = states(entity) -%}
+                {{ 'disabled' if s in ['stop', 'off', 'idle', 'unavailable', 'unknown']
+                   else 'amber' if s == 'pause' else 'blue' }}
+              badge_icon: &machine_badge >-
+                {%- set s = states(entity) -%}
+                {{ '' if s in ['stop', 'off', 'idle', 'unavailable', 'unknown']
+                   else 'mdi:pause' if s == 'pause' else 'mdi:play' }}
+              badge_color: *machine_color
+              layout: vertical
+              fill_container: true
+              tap_action: &more_info
+                action: more-info
+              hold_action: *more_info
           - type: conditional
             conditions:
               - condition: state
                 entity: input_boolean.wall_washer_done
                 state: "on"
             grid_options: *laundry_size
-            card:
-              type: tile
+            card: &washer_done
+              type: custom:mushroom-template-card
               entity: input_boolean.wall_washer_done
-              name: "Washer: Done"
+              primary: "Washer: Done"
+              secondary: "{{ relative_time(states[entity].last_changed) }} ago"
               icon: mdi:washing-machine
-              color: green
-              state_content: last_changed
+              icon_color: green
+              badge_icon: mdi:check
+              badge_color: green
+              layout: vertical
+              fill_container: true
+              # Tap clears the Done flag early (was the tile's icon tap).
+              tap_action:
+                action: toggle
+              hold_action: *more_info
           - type: conditional
             conditions:
               - condition: state
@@ -76,9 +116,18 @@ views:
                 state_not: "on"
             grid_options: *laundry_size
             card:
-              type: tile
+              <<: *washer
               entity: sensor.dryer_machine_state
-              name: Dryer
+              primary: Dryer
+              secondary: >-
+                {%- set s = states('sensor.dryer_machine_state') -%}
+                {%- set end = as_timestamp(states('sensor.dryer_completion_time'), none) -%}
+                {%- if s in ['stop', 'off', 'idle', 'unavailable', 'unknown'] -%}
+                {{ state_translated('sensor.dryer_machine_state') }}
+                {%- else -%}
+                {{ states('sensor.living_room_dryer_progress', with_unit=True) }}
+                {%- if end %} · {{ end | timestamp_custom('%-I:%M %p') }}{% endif -%}
+                {%- endif -%}
               icon: mdi:tumble-dryer
           - type: conditional
             conditions:
@@ -87,56 +136,41 @@ views:
                 state: "on"
             grid_options: *laundry_size
             card:
-              type: tile
+              <<: *washer_done
               entity: input_boolean.wall_dryer_done
-              name: "Dryer: Done"
+              primary: "Dryer: Done"
               icon: mdi:tumble-dryer
-              color: green
-              state_content: last_changed
-          - type: tile
-            entity: sensor.living_room_washer_progress
-            name: Washer progress
-            icon: mdi:progress-clock
-            grid_options: *laundry_size
-          - type: tile
-            entity: sensor.living_room_dryer_progress
-            name: Dryer progress
-            icon: mdi:progress-clock
-            grid_options: *laundry_size
-          - type: tile
-            entity: sensor.washer_completion_time
-            name: Washer done
-            icon: mdi:clock-check-outline
-            grid_options: *laundry_size
-          - type: tile
-            entity: sensor.dryer_completion_time
-            name: Dryer done
-            icon: mdi:clock-check-outline
-            grid_options: *laundry_size
-          # Indoor temperatures: three equal 1-row tiles; thermostats show the measured
-          # temperature (current_temperature), not the HVAC mode.
-          - type: tile
+          # Indoor temperatures: three equal vertical cards (4 columns each). Thermostats
+          # show the measured temperature (current_temperature), not the HVAC mode. Icon
+          # colour (assumes deg F): blue under 66, orange over 76, green between.
+          - &temp
+            type: custom:mushroom-template-card
             entity: climate.living_room
-            name: Living Room
+            primary: Living Room
+            secondary: >-
+              {{ state_attr(entity, 'current_temperature') ~ '°'
+                 if entity.startswith('climate.') else states(entity, with_unit=True) }}
             icon: mdi:home-thermometer
-            state_content: current_temperature
-            grid_options: &temp_size
+            icon_color: >-
+              {%- set t = (state_attr(entity, 'current_temperature')
+                           if entity.startswith('climate.') else states(entity)) | float(none) -%}
+              {{ 'disabled' if t is none else 'blue' if t < 66 else 'orange' if t > 76 else 'green' }}
+            layout: vertical
+            fill_container: true
+            tap_action: *more_info
+            hold_action: *more_info
+            grid_options:
               columns: 4
-              rows: 1
-          - type: tile
+              rows: 2
+          - <<: *temp
             entity: climate.loft
-            name: Loft
-            icon: mdi:home-thermometer
-            state_content: current_temperature
-            grid_options: *temp_size
-          - type: tile
+            primary: Loft
+          - <<: *temp
             entity: sensor.bedroom_temperature
-            name: Bedroom
-            icon: mdi:home-thermometer
-            grid_options: *temp_size
+            primary: Bedroom
 
-      # Middle: driveway camera and radar, identical 5-row tiles. Snapshot mode (auto)
-      # instead of live: the live stream rendered black on the tablet.
+      # Middle: driveway camera and radar, identical 5-row cards (no Mushroom camera card).
+      # Snapshot mode (auto) instead of live: the live stream rendered black on the tablet.
       - type: grid
         cards:
           - type: picture-entity
@@ -158,32 +192,31 @@ views:
               columns: full
               rows: 5
 
-      # Right: garage and car. Tiles/buttons cannot colour an inactive (closed) cover, so
-      # the garage door is a picture-elements card with an explicitly coloured icon:
-      # green garage when closed, red open garage otherwise. Two conditionals, exactly one
-      # visible; both ask "Open/close the garage?" before toggling.
+      # Right: garage and car.
       - type: grid
         cards:
-          # Row 1: heading, or the attention banner in its place (same 1 row).
+          # Rows 1-2: title, or the attention banner (1 row, unchanged) + an empty 1-row spacer.
           - type: conditional
             conditions:
               - condition: state
                 entity: binary_sensor.wall_attention
                 state_not: "on"
-            grid_options: &banner_size
+            grid_options: &title_size
               columns: full
-              rows: 1
+              rows: 2
             card:
-              type: heading
-              heading: Garage & car
-              icon: mdi:garage
+              type: custom:mushroom-title-card
+              title: Garage & car
+              subtitle: Tap asks before it acts
           - type: conditional
             conditions:
               - condition: state
                 entity: binary_sensor.wall_attention
                 state: "on"
-            grid_options: *banner_size
-            # Loud static banner (no flashing without custom cards): solid red picture-elements
+            grid_options: &banner_size
+              columns: full
+              rows: 1
+            # Loud static banner (no flashing without card-mod): solid red picture-elements
             # bar. The SVG spacer is itself solid red and stretches (preserveAspectRatio=none);
             # the reasons label also paints a full-size red box, so the bar is solid either way.
             card:
@@ -220,173 +253,111 @@ views:
                     left: 30px
                     color: "#ffffff"
                     --mdc-icon-size: 40px
+          # Spacer under the banner so the column stays at 10 rows (title 2 = banner 1 + 1).
           - type: conditional
             conditions:
               - condition: state
-                entity: cover.garage_2
-                state: closed
-            grid_options: &garage_size
-              columns: full
-              rows: 5
-            card:
-              type: picture-elements
-              # Transparent 5:4 spacer so the card is sized by the grid, not a photo.
-              image: &garage_bg "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='125' height='100' viewBox='0 0 125 100'/%3E"
-              elements:
-                - type: icon
-                  icon: mdi:garage
-                  entity: cover.garage_2
-                  tap_action: &garage_toggle
-                    action: toggle
-                    confirmation:
-                      text: Open/close the garage?
-                  hold_action: &no_hold
-                    action: none
-                  style:
-                    top: 40%
-                    left: 50%
-                    color: "#43a047"
-                    --mdc-icon-size: 140px
-                - type: state-label
-                  entity: cover.garage_2
-                  prefix: "Garage door: "
-                  tap_action: *garage_toggle
-                  hold_action: *no_hold
-                  style: &garage_label
-                    top: 85%
-                    left: 50%
-                    color: var(--primary-text-color)
-                    font-size: 24px
-                    font-weight: bold
-          - type: conditional
-            conditions:
-              - condition: state
-                entity: cover.garage_2
-                state_not: closed
-              - condition: state
-                entity: binary_sensor.wall_garage_open_too_long
-                state_not: "on"
-            grid_options: *garage_size
-            card:
-              type: picture-elements
-              image: *garage_bg
-              elements:
-                - type: icon
-                  icon: mdi:garage-open
-                  entity: cover.garage_2
-                  tap_action: *garage_toggle
-                  hold_action: *no_hold
-                  style:
-                    top: 40%
-                    left: 50%
-                    color: "#e53935"
-                    --mdc-icon-size: 140px
-                - type: state-label
-                  entity: cover.garage_2
-                  prefix: "Garage door: "
-                  tap_action: *garage_toggle
-                  hold_action: *no_hold
-                  style: *garage_label
-          # Open (not closed) for 10+ minutes: alert icon and red label.
-          - type: conditional
-            conditions:
-              - condition: state
-                entity: cover.garage_2
-                state_not: closed
-              - condition: state
-                entity: binary_sensor.wall_garage_open_too_long
+                entity: binary_sensor.wall_attention
                 state: "on"
-            grid_options: *garage_size
+            grid_options: *banner_size
             card:
-              type: picture-elements
-              image: *garage_bg
-              elements:
-                - type: icon
-                  icon: mdi:garage-alert
-                  entity: cover.garage_2
-                  tap_action: *garage_toggle
-                  hold_action: *no_hold
-                  style:
-                    top: 40%
-                    left: 50%
-                    color: "#e53935"
-                    --mdc-icon-size: 140px
-                - type: state-label
-                  entity: cover.garage_2
-                  prefix: "Garage door: "
-                  suffix: " 10+ min"
-                  tap_action: *garage_toggle
-                  hold_action: *no_hold
-                  style:
-                    <<: *garage_label
-                    color: "#e53935"
-          # Bedroom filter: normal (also when unavailable, so the slot is never empty),
-          # amber under 20 %, red under 10 %.
-          - type: conditional
-            conditions:
-              - condition: or
-                conditions:
-                  - condition: numeric_state
-                    entity: sensor.bedroom_core_200s_filter_lifetime
-                    above: 19.999
-                  - condition: state
-                    entity: sensor.bedroom_core_200s_filter_lifetime
-                    state: [unavailable, unknown]
-            grid_options: &filter_size
+              type: custom:mushroom-title-card
+          # Garage door: green garage + check badge when closed; red open garage otherwise;
+          # red garage-alert + "10+ min" when binary_sensor.wall_garage_open_too_long is on.
+          # Tap asks "Open/close the garage?" before toggling.
+          - type: custom:mushroom-template-card
+            entity: cover.garage_2
+            primary: Garage door
+            secondary: >-
+              {{ state_translated(entity) }}{{ ' 10+ min'
+                 if not is_state(entity, 'closed')
+                 and is_state('binary_sensor.wall_garage_open_too_long', 'on') else '' }}
+            icon: >-
+              {{ 'mdi:garage' if is_state(entity, 'closed')
+                 else 'mdi:garage-alert' if is_state('binary_sensor.wall_garage_open_too_long', 'on')
+                 else 'mdi:garage-open' }}
+            icon_color: &garage_color "{{ 'green' if is_state(entity, 'closed') else 'red' }}"
+            badge_icon: >-
+              {{ 'mdi:check' if is_state(entity, 'closed')
+                 else 'mdi:alert' if is_state('binary_sensor.wall_garage_open_too_long', 'on')
+                 else 'mdi:arrow-up-bold' }}
+            badge_color: *garage_color
+            layout: vertical
+            fill_container: true
+            tap_action:
+              action: toggle
+              confirmation:
+                text: Open/close the garage?
+            hold_action:
+              action: none
+            grid_options:
+              columns: full
+              rows: 4
+          # Bedroom filter: green normally (grey when unavailable), amber under 20 %, red under
+          # 10 %, with an alert badge when low.
+          - type: custom:mushroom-template-card
+            entity: sensor.bedroom_core_200s_filter_lifetime
+            primary: Bedroom filter
+            secondary: "{{ states(entity, with_unit=True) }}"
+            icon: mdi:air-filter
+            icon_color: &filter_color >-
+              {%- set v = states(entity) | float(none) -%}
+              {{ 'disabled' if v is none else 'red' if v < 10 else 'amber' if v < 20 else 'green' }}
+            badge_icon: >-
+              {%- set v = states(entity) | float(none) -%}
+              {{ 'mdi:alert' if v is not none and v < 20 else '' }}
+            badge_color: *filter_color
+            layout: vertical
+            fill_container: true
+            tap_action: *more_info
+            hold_action: *more_info
+            grid_options:
               columns: full
               rows: 2
-            card: &filter_tile
-              type: tile
-              entity: sensor.bedroom_core_200s_filter_lifetime
-              name: Bedroom filter
-              icon: mdi:air-filter
-          - type: conditional
-            conditions:
-              - condition: numeric_state
-                entity: sensor.bedroom_core_200s_filter_lifetime
-                above: 9.999
-                below: 20
-            grid_options: *filter_size
-            card:
-              <<: *filter_tile
-              color: amber
-          - type: conditional
-            conditions:
-              - condition: numeric_state
-                entity: sensor.bedroom_core_200s_filter_lifetime
-                below: 10
-            grid_options: *filter_size
-            card:
-              <<: *filter_tile
-              color: red
           # Nissan Rogue: no battery/range sensors exist; lock + hatch only.
-          - type: tile
+          - type: custom:mushroom-template-card
             entity: lock.jn8bt3dd1tw486371_lock
-            name: Car lock
+            primary: Car lock
+            secondary: "{{ state_translated(entity) }}"
             icon: mdi:car-key
-            tap_action: &car_toggle
+            icon_color: &lock_color >-
+              {{ 'green' if is_state(entity, 'locked') else 'red' if is_state(entity, 'unlocked')
+                 else 'amber' }}
+            badge_icon: >-
+              {{ 'mdi:lock' if is_state(entity, 'locked') else 'mdi:lock-open-variant'
+                 if is_state(entity, 'unlocked') else 'mdi:help' }}
+            badge_color: *lock_color
+            layout: vertical
+            fill_container: true
+            tap_action:
               action: toggle
               confirmation:
                 text: Lock/unlock the car?
-            icon_tap_action: *car_toggle
             hold_action:
               action: none
             grid_options:
               columns: 6
               rows: 2
-          - type: tile
+          - type: custom:mushroom-template-card
             entity: binary_sensor.jn8bt3dd1tw486371_hatch
-            name: Car hatch
+            primary: Car hatch
+            secondary: "{{ state_translated(entity) }}"
             icon: mdi:car-back
+            icon_color: &hatch_color "{{ 'red' if is_state(entity, 'on') else 'green' }}"
+            badge_icon: "{{ 'mdi:alert' if is_state(entity, 'on') else 'mdi:check' }}"
+            badge_color: *hatch_color
+            layout: vertical
+            fill_container: true
+            tap_action: *more_info
+            hold_action: *more_info
             grid_options:
               columns: 6
               rows: 2
 
   # ---------------------------------------------------------------- Climate
-  # Two columns, 5 rows each (laundry moved to the Home tab). Full-width tiles so the
-  # thermostat +/- controls have room:
-  #   Thermostats  = heading 1 + Living Room 2 + Loft 2   = 5
-  #   Temperatures = heading 1 + Bedroom 2 + Outside 2    = 5
+  # Two columns, 6 rows each:
+  #   Thermostats  = title 2 + Living Room 2 + Loft 2      = 6  (mushroom-climate-card, -/+ kept)
+  #   Temperatures = title 2 + Bedroom 2 + Outside 2       = 6  (vertical template cards)
   - title: Climate
     path: climate
     icon: mdi:thermostat
@@ -395,47 +366,62 @@ views:
     sections:
       - type: grid
         cards:
-          - type: heading
-            heading: Thermostats
-            icon: mdi:thermostat
-            grid_options: {columns: full, rows: 1}
-          - type: tile
+          - type: custom:mushroom-title-card
+            title: Thermostats
+            subtitle: Use − and + to set
+            grid_options: *title_size
+          - &thermostat
+            type: custom:mushroom-climate-card
             entity: climate.living_room
             name: Living Room
             icon: mdi:thermostat
-            features: &climate_features
-              - type: target-temperature
-            grid_options: {columns: full, rows: 2}
-          - type: tile
+            show_temperature_control: true
+            collapsible_controls: false
+            hvac_modes: []
+            fill_container: true
+            grid_options:
+              columns: full
+              rows: 2
+          - <<: *thermostat
             entity: climate.loft
             name: Loft
-            icon: mdi:thermostat
-            features: *climate_features
-            grid_options: {columns: full, rows: 2}
 
       - type: grid
         cards:
-          - type: heading
-            heading: Temperatures
-            icon: mdi:thermometer
-            grid_options: {columns: full, rows: 1}
-          - type: tile
+          - type: custom:mushroom-title-card
+            title: Temperatures
+            subtitle: Inside and out
+            grid_options: *title_size
+          - <<: *temp
             entity: sensor.bedroom_temperature
-            name: Bedroom
+            primary: Bedroom
             icon: mdi:thermometer
-            grid_options: {columns: full, rows: 2}
-          - type: tile
+            grid_options:
+              columns: full
+              rows: 2
+          - type: custom:mushroom-template-card
             entity: weather.home
-            name: Outside
+            primary: Outside
+            secondary: >-
+              {{ state_attr(entity, 'temperature') }}{{ state_attr(entity, 'temperature_unit') }}
+              · {{ state_translated(entity) }}
             icon: mdi:sun-thermometer
-            state_content: [temperature, state]
-            grid_options: {columns: full, rows: 2}
+            icon_color: orange
+            layout: vertical
+            fill_container: true
+            tap_action: *more_info
+            hold_action: *more_info
+            grid_options:
+              columns: full
+              rows: 2
 
   # ---------------------------------------------------------------- Lights
-  # Three columns, 8 rows each (was 4 sections, the 4th wrapped below):
-  #   Kitchen & outside = heading 1 + 8 lights 4 + Scenes heading 1 + 2 scenes 1 + 1 scene full 1 = 8
-  #   Baths & bedroom   = heading 1 + 6 lights in 2-row pairs 6 + MB 4 full 1                 = 8
-  #   Plugs             = heading 1 + 10 plugs 5 + All lights off full 2                         = 8
+  # Three columns, 10 rows each. 29 controls cannot all be 2-row vertical cards on one
+  # screen, so kitchen lights, scenes and plugs are 1-row horizontal Mushroom cards:
+  #   Kitchen & outside = title 2 + 8 lights in pairs 4 + Scenes title 2 + 2 scenes 1 + 1 full 1 = 10
+  #   Baths & bedroom   = title 2 + 6 lights vertical pairs 6 + MB 4 full vertical 2           = 10
+  #   Plugs             = title 2 + 10 plugs in pairs 5 + All lights off full vertical 3        = 10
+  # Lights: amber icon when on, second line is brightness (or the state). Tap toggles.
   - title: Lights
     path: lights
     icon: mdi:lightbulb-group
@@ -444,160 +430,193 @@ views:
     sections:
       - type: grid
         cards:
-          - type: heading
-            heading: Kitchen & outside
-            icon: mdi:lightbulb
-            grid_options: {columns: full, rows: 1}
-          - type: tile
+          - type: custom:mushroom-title-card
+            title: Kitchen & outside
+            subtitle: >-
+              {{ ['light.backyard', 'light.garage_door', 'light.strip_light',
+                  'light.stovetop_light', 'light.office_zig1_level_on_off', 'light.h6199_4d1f',
+                  'light.powderroom_1', 'light.smart_bulb_2']
+                 | select('is_state', 'on') | list | count }} of 8 on
+            grid_options: *title_size
+          - &light
+            type: custom:mushroom-template-card
             entity: light.backyard
-            name: Backyard
-            grid_options: {columns: 6, rows: 1}
-          - type: tile
+            primary: Backyard
+            secondary: >-
+              {{ ((state_attr(entity, 'brightness') / 2.55) | round(0) | int) ~ ' %'
+                 if is_state(entity, 'on') and state_attr(entity, 'brightness')
+                 else state_translated(entity) }}
+            icon: mdi:lightbulb
+            icon_color: "{{ 'amber' if is_state(entity, 'on') else 'disabled' }}"
+            fill_container: true
+            tap_action: &toggle
+              action: toggle
+            hold_action: *more_info
+            grid_options:
+              columns: 6
+              rows: 1
+          - <<: *light
             entity: light.garage_door
-            name: Garage door
-            grid_options: {columns: 6, rows: 1}
-          - type: tile
+            primary: Garage door
+          - <<: *light
             entity: light.strip_light
-            name: Cabinet strip
-            grid_options: {columns: 6, rows: 1}
-          - type: tile
+            primary: Cabinet strip
+          - <<: *light
             entity: light.stovetop_light
-            name: Stove top
-            grid_options: {columns: 6, rows: 1}
-          - type: tile
+            primary: Stove top
+          - <<: *light
             entity: light.office_zig1_level_on_off
-            name: Office
-            grid_options: {columns: 6, rows: 1}
-          - type: tile
+            primary: Office
+          - <<: *light
             entity: light.h6199_4d1f
-            name: TV backlight
-            grid_options: {columns: 6, rows: 1}
-          - type: tile
+            primary: TV backlight
+          - <<: *light
             entity: light.powderroom_1
-            name: Powder room
-            grid_options: {columns: 6, rows: 1}
-          - type: tile
+            primary: Powder room
+          - <<: *light
             entity: light.smart_bulb_2
-            name: Smart bulb 2
-            grid_options: {columns: 6, rows: 1}
-          - type: heading
-            heading: Scenes
-            icon: mdi:palette
-            grid_options: {columns: full, rows: 1}
-          - type: tile
+            primary: Smart bulb 2
+          - type: custom:mushroom-title-card
+            title: Scenes
+            subtitle: Tap to apply
+            grid_options: *title_size
+          - &scene
+            type: custom:mushroom-template-card
             entity: scene.kitchen_cabinet_light
-            name: Cabinet
+            primary: Cabinet
+            icon: mdi:palette
+            icon_color: purple
+            fill_container: true
             tap_action:
               action: perform-action
               perform_action: scene.turn_on
               target:
                 entity_id: scene.kitchen_cabinet_light
-            grid_options: {columns: 6, rows: 1}
-          - type: tile
+            hold_action: *more_info
+            grid_options:
+              columns: 6
+              rows: 1
+          - <<: *scene
             entity: scene.stove_lights_switch_on
-            name: Stove lights
+            primary: Stove lights
             tap_action:
               action: perform-action
               perform_action: scene.turn_on
               target:
                 entity_id: scene.stove_lights_switch_on
-            grid_options: {columns: 6, rows: 1}
-          - type: tile
+          - <<: *scene
             entity: scene.stove_light_red
-            name: Stove red
+            primary: Stove red
+            icon_color: red
             tap_action:
               action: perform-action
               perform_action: scene.turn_on
               target:
                 entity_id: scene.stove_light_red
-            grid_options: {columns: full, rows: 1}
+            grid_options:
+              columns: full
+              rows: 1
 
       - type: grid
         cards:
-          - type: heading
-            heading: Baths & bedroom
-            icon: mdi:bed
-            grid_options: {columns: full, rows: 1}
-          - type: tile
+          - type: custom:mushroom-title-card
+            title: Baths & bedroom
+            subtitle: >-
+              {{ ['light.guestbath1', 'light.guestbath2', 'light.guestbath3', 'light.mb1',
+                  'light.mb2', 'light.mb3', 'light.mb4']
+                 | select('is_state', 'on') | list | count }} of 7 on
+            grid_options: *title_size
+          - &light_v
+            <<: *light
             entity: light.guestbath1
-            name: Guest bath 1
-            grid_options: {columns: 6, rows: 2}
-          - type: tile
+            primary: Guest bath 1
+            layout: vertical
+            grid_options:
+              columns: 6
+              rows: 2
+          - <<: *light_v
             entity: light.guestbath2
-            name: Guest bath 2
-            grid_options: {columns: 6, rows: 2}
-          - type: tile
+            primary: Guest bath 2
+          - <<: *light_v
             entity: light.guestbath3
-            name: Guest bath 3
-            grid_options: {columns: 6, rows: 2}
-          - type: tile
+            primary: Guest bath 3
+          - <<: *light_v
             entity: light.mb1
-            name: MB 1
-            grid_options: {columns: 6, rows: 2}
-          - type: tile
+            primary: MB 1
+          - <<: *light_v
             entity: light.mb2
-            name: MB 2
-            grid_options: {columns: 6, rows: 2}
-          - type: tile
+            primary: MB 2
+          - <<: *light_v
             entity: light.mb3
-            name: MB 3
-            grid_options: {columns: 6, rows: 2}
-          - type: tile
+            primary: MB 3
+          - <<: *light_v
             entity: light.mb4
-            name: MB 4
-            grid_options: {columns: full, rows: 1}
+            primary: MB 4
+            grid_options:
+              columns: full
+              rows: 2
 
       - type: grid
         cards:
-          - type: heading
-            heading: Plugs
-            icon: mdi:power-socket-us
-            grid_options: {columns: full, rows: 1}
-          - type: tile
+          - type: custom:mushroom-title-card
+            title: Plugs
+            subtitle: >-
+              {{ ['switch.coat_room', 'switch.laundry', 'switch.mb_closet',
+                  'switch.office_closet', 'switch.pantry', 'switch.rice_cooker', 'switch.tv',
+                  'switch.projector', 'switch.iphone_charger', 'switch.vaccum_charger']
+                 | select('is_state', 'on') | list | count }} of 10 on
+            grid_options: *title_size
+          - &plug
+            type: custom:mushroom-template-card
             entity: switch.coat_room
-            name: Coat room
-            grid_options: {columns: 6, rows: 1}
-          - type: tile
+            primary: Coat room
+            secondary: "{{ state_translated(entity) }}"
+            icon: mdi:power-socket-us
+            icon_color: "{{ 'blue' if is_state(entity, 'on') else 'disabled' }}"
+            fill_container: true
+            tap_action: *toggle
+            hold_action: *more_info
+            grid_options:
+              columns: 6
+              rows: 1
+          - <<: *plug
             entity: switch.laundry
-            name: Laundry
-            grid_options: {columns: 6, rows: 1}
-          - type: tile
+            primary: Laundry
+          - <<: *plug
             entity: switch.mb_closet
-            name: MB closet
-            grid_options: {columns: 6, rows: 1}
-          - type: tile
+            primary: MB closet
+          - <<: *plug
             entity: switch.office_closet
-            name: Office closet
-            grid_options: {columns: 6, rows: 1}
-          - type: tile
+            primary: Office closet
+          - <<: *plug
             entity: switch.pantry
-            name: Pantry
-            grid_options: {columns: 6, rows: 1}
-          - type: tile
+            primary: Pantry
+          - <<: *plug
             entity: switch.rice_cooker
-            name: Rice cooker
-            grid_options: {columns: 6, rows: 1}
-          - type: tile
+            primary: Rice cooker
+          - <<: *plug
             entity: switch.tv
-            name: TV plug
-            grid_options: {columns: 6, rows: 1}
-          - type: tile
+            primary: TV plug
+          - <<: *plug
             entity: switch.projector
-            name: Projector
-            grid_options: {columns: 6, rows: 1}
-          - type: tile
+            primary: Projector
+          - <<: *plug
             entity: switch.iphone_charger
-            name: iPhone charger
-            grid_options: {columns: 6, rows: 1}
-          - type: tile
+            primary: iPhone charger
+          - <<: *plug
             entity: switch.vaccum_charger
-            name: Vacuum charger
-            grid_options: {columns: 6, rows: 1}
-          - type: button
-            name: All lights off
+            primary: Vacuum charger
+          - type: custom:mushroom-template-card
+            primary: All lights off
+            secondary: Every light on this tab
             icon: mdi:lightbulb-group-off
-            show_state: false
-            grid_options: {columns: full, rows: 2}
+            icon_color: amber
+            layout: vertical
+            fill_container: true
+            hold_action: *no_action
+            grid_options:
+              columns: full
+              rows: 3
             tap_action:
               action: perform-action
               perform_action: light.turn_off
@@ -620,112 +639,223 @@ views:
                   - light.mb4
 
   # ---------------------------------------------------------------- Water
-  # Every zone asks before toggling (body and icon taps share one anchor).
-  # Three columns, 5 rows each: heading 1 + 4 zones in 2-row pairs 4 = 5.
+  # The 12 ESPHome zones, styled like the Lawn dashboard's Zones cards (blue + water badge
+  # while watering, teal + green check when ready, grey + alert badge when unavailable).
+  # Every zone asks before toggling. Three columns, 6 rows each:
+  #   title 2 + 4 zones in vertical pairs 4 = 6
   - title: Water
     path: water
-    icon: mdi:sprinkler-variant
+    icon: mdi:sprinkler
     type: sections
     max_columns: 3
     sections:
       - type: grid
         cards:
-          - type: heading
-            heading: Controller 1
-            icon: mdi:sprinkler-variant
-            grid_options: {columns: full, rows: 1}
-          - type: tile
+          - type: custom:mushroom-title-card
+            title: Controller 1
+            subtitle: >-
+              {%- set n = ['switch.sprinkler_controller_01_sprinkler_01',
+                           'switch.sprinkler_controller_01_sprinkler_02',
+                           'switch.sprinkler_controller_01_sprinkler_03',
+                           'switch.sprinkler_controller_01_sprinkler_04']
+                          | select('is_state', 'on') | list | count -%}
+              {{ n ~ ' watering' if n else 'Tap to start or stop' }}
+            grid_options: *title_size
+          - &zone
+            type: custom:mushroom-template-card
             entity: switch.sprinkler_controller_01_sprinkler_01
-            name: Zone 01
-            tap_action: &zone_toggle
+            primary: Zone 01
+            secondary: >-
+              {{ 'Watering now' if is_state(entity, 'on') else 'Ready' if is_state(entity, 'off')
+                 else state_translated(entity) }}
+            icon: mdi:sprinkler-variant
+            icon_color: >-
+              {{ 'blue' if is_state(entity, 'on') else 'teal' if is_state(entity, 'off')
+                 else 'disabled' }}
+            badge_icon: >-
+              {{ 'mdi:water' if is_state(entity, 'on') else 'mdi:check' if is_state(entity, 'off')
+                 else 'mdi:alert' }}
+            badge_color: >-
+              {{ 'blue' if is_state(entity, 'on') else 'green' if is_state(entity, 'off')
+                 else 'disabled' }}
+            layout: vertical
+            fill_container: true
+            tap_action:
               action: toggle
               confirmation:
                 text: Turn this sprinkler zone on/off?
-            icon_tap_action: *zone_toggle
-            grid_options: {columns: 6, rows: 2}
-          - type: tile
+            hold_action: *more_info
+            grid_options:
+              columns: 6
+              rows: 2
+          - <<: *zone
             entity: switch.sprinkler_controller_01_sprinkler_02
-            name: Zone 02
-            tap_action: *zone_toggle
-            icon_tap_action: *zone_toggle
-            grid_options: {columns: 6, rows: 2}
-          - type: tile
+            primary: Zone 02
+          - <<: *zone
             entity: switch.sprinkler_controller_01_sprinkler_03
-            name: Zone 03
-            tap_action: *zone_toggle
-            icon_tap_action: *zone_toggle
-            grid_options: {columns: 6, rows: 2}
-          - type: tile
+            primary: Zone 03
+          - <<: *zone
             entity: switch.sprinkler_controller_01_sprinkler_04
-            name: Zone 04
-            tap_action: *zone_toggle
-            icon_tap_action: *zone_toggle
-            grid_options: {columns: 6, rows: 2}
+            primary: Zone 04
 
       - type: grid
         cards:
-          - type: heading
-            heading: Zones 5-8
-            icon: mdi:sprinkler-variant
-            grid_options: {columns: full, rows: 1}
-          - type: tile
+          - type: custom:mushroom-title-card
+            title: Zones 5-8
+            subtitle: >-
+              {%- set n = ['switch.sprinkler_5', 'switch.sprinkler_6', 'switch.sprinkler_7',
+                           'switch.sprinkler_8'] | select('is_state', 'on') | list | count -%}
+              {{ n ~ ' watering' if n else 'Tap to start or stop' }}
+            grid_options: *title_size
+          - <<: *zone
             entity: switch.sprinkler_5
-            name: Zone 5
-            tap_action: *zone_toggle
-            icon_tap_action: *zone_toggle
-            grid_options: {columns: 6, rows: 2}
-          - type: tile
+            primary: Zone 5
+          - <<: *zone
             entity: switch.sprinkler_6
-            name: Zone 6
-            tap_action: *zone_toggle
-            icon_tap_action: *zone_toggle
-            grid_options: {columns: 6, rows: 2}
-          - type: tile
+            primary: Zone 6
+          - <<: *zone
             entity: switch.sprinkler_7
-            name: Zone 7
-            tap_action: *zone_toggle
-            icon_tap_action: *zone_toggle
-            grid_options: {columns: 6, rows: 2}
-          - type: tile
+            primary: Zone 7
+          - <<: *zone
             entity: switch.sprinkler_8
-            name: Zone 8
-            tap_action: *zone_toggle
-            icon_tap_action: *zone_toggle
-            grid_options: {columns: 6, rows: 2}
+            primary: Zone 8
 
       - type: grid
         cards:
-          - type: heading
-            heading: Controller 3
-            icon: mdi:sprinkler-variant
-            grid_options: {columns: full, rows: 1}
-          - type: tile
+          - type: custom:mushroom-title-card
+            title: Controller 3
+            subtitle: >-
+              {%- set n = ['switch.sprinkler_controller_3_sprinkler_1',
+                           'switch.sprinkler_controller_3_sprinkler_2',
+                           'switch.sprinkler_controller_3_sprinkler_3',
+                           'switch.sprinkler_controller_3_sprinkler_4']
+                          | select('is_state', 'on') | list | count -%}
+              {{ n ~ ' watering' if n else 'Tap to start or stop' }}
+            grid_options: *title_size
+          - <<: *zone
             entity: switch.sprinkler_controller_3_sprinkler_1
-            name: C3 Zone 1
-            tap_action: *zone_toggle
-            icon_tap_action: *zone_toggle
-            grid_options: {columns: 6, rows: 2}
-          - type: tile
+            primary: C3 Zone 1
+          - <<: *zone
             entity: switch.sprinkler_controller_3_sprinkler_2
-            name: C3 Zone 2
-            tap_action: *zone_toggle
-            icon_tap_action: *zone_toggle
-            grid_options: {columns: 6, rows: 2}
-          - type: tile
+            primary: C3 Zone 2
+          - <<: *zone
             entity: switch.sprinkler_controller_3_sprinkler_3
-            name: C3 Zone 3
-            tap_action: *zone_toggle
-            icon_tap_action: *zone_toggle
-            grid_options: {columns: 6, rows: 2}
-          - type: tile
+            primary: C3 Zone 3
+          - <<: *zone
             entity: switch.sprinkler_controller_3_sprinkler_4
-            name: C3 Zone 4
-            tap_action: *zone_toggle
-            icon_tap_action: *zone_toggle
-            grid_options: {columns: 6, rows: 2}
+            primary: C3 Zone 4
+
+  # ---------------------------------------------------------------- Lawn
+  # From K's Lawn dashboard (overseed watering). Own tab: Lawn header + Zones + Schedules +
+  # Activity + the 12 zones need ~33 rows, more than three 10-row columns on one screen.
+  #   Header (spans 3 columns) = title 2 + chips 1                      = 3
+  #   Zones     = title 2 + Zone 1|Zone 2 vertical 4                    = 6
+  #   Schedules = title 2 + Zone 1|Zone 2 schedule vertical 4           = 6
+  #   Activity  = title 2 + 48 h history 4                              = 6
+  # Each column 3 + 6 = 9 rows plus one section gap, under the 10-row screen.
+  # The two Lawn zones ask before toggling, like every other zone on this dashboard.
+  - title: Lawn
+    path: lawn
+    icon: mdi:sprinkler-variant
+    type: sections
+    max_columns: 3
+    sections:
+      - type: grid
+        column_span: 3
+        cards:
+          - type: custom:mushroom-title-card
+            title: Lawn
+            subtitle: Overseed watering
+            grid_options: *title_size
+          - type: custom:mushroom-chips-card
+            alignment: start
+            chips:
+              - type: weather
+                entity: weather.home
+                show_conditions: true
+                show_temperature: true
+              - &zone_chip
+                type: template
+                entity: switch.z_main_switch_c1
+                icon: mdi:sprinkler-variant
+                icon_color: "{{ 'blue' if is_state(entity, 'on') else 'teal' }}"
+                content: "Zone 1 {{ 'watering' if is_state(entity, 'on') else 'ready' }}"
+                tap_action: *more_info
+              - <<: *zone_chip
+                entity: switch.z_c2_main_switch
+                icon: mdi:sprinkler
+                icon_color: "{{ 'cyan' if is_state(entity, 'on') else 'teal' }}"
+                content: "Zone 2 {{ 'watering' if is_state(entity, 'on') else 'ready' }}"
+            grid_options:
+              columns: full
+              rows: 1
+
+      - type: grid
+        cards:
+          - type: custom:mushroom-title-card
+            title: Zones
+            subtitle: Tap to start or stop
+            grid_options: *title_size
+          - &lawn_zone
+            <<: *zone
+            entity: switch.z_main_switch_c1
+            primary: Zone 1
+            grid_options:
+              columns: 6
+              rows: 4
+          - <<: *lawn_zone
+            entity: switch.z_c2_main_switch
+            primary: Zone 2
+            icon: mdi:sprinkler
+            icon_color: >-
+              {{ 'cyan' if is_state(entity, 'on') else 'teal' if is_state(entity, 'off')
+                 else 'disabled' }}
+
+      - type: grid
+        cards:
+          - type: custom:mushroom-title-card
+            title: Schedules
+            subtitle: Tap to pause or resume
+            grid_options: *title_size
+          - &schedule
+            type: custom:mushroom-template-card
+            entity: automation.sprinkler_zone_1
+            primary: Zone 1 schedule
+            secondary: "{{ 'Active' if is_state(entity, 'on') else 'Paused' }}"
+            icon: mdi:calendar-clock
+            icon_color: "{{ 'green' if is_state(entity, 'on') else 'orange' }}"
+            layout: vertical
+            fill_container: true
+            tap_action: *toggle
+            hold_action: *more_info
+            grid_options:
+              columns: 6
+              rows: 4
+          - <<: *schedule
+            entity: automation.sprinkler_zone_2
+            primary: Zone 2 schedule
+
+      - type: grid
+        cards:
+          - type: custom:mushroom-title-card
+            title: Activity
+            subtitle: Last 48 hours
+            grid_options: *title_size
+          - type: history-graph
+            hours_to_show: 48
+            entities:
+              - entity: switch.z_main_switch_c1
+                name: Zone 1
+              - entity: switch.z_c2_main_switch
+                name: Zone 2
+            grid_options:
+              columns: full
+              rows: 4
 
   # ---------------------------------------------------------------- Media
-  # One column: heading 1 + 4 full-width tiles 4 = 5.
+  # One column: title 2 + 4 players in vertical pairs 4 = 6.
+  # Green + play badge while playing, amber + pause badge when paused, grey otherwise; the
+  # second line is the current title. Tap opens the player controls (more-info), as before.
   - title: Media
     path: media
     icon: mdi:television-play
@@ -734,23 +864,38 @@ views:
     sections:
       - type: grid
         cards:
-          - type: heading
-            heading: Media
-            icon: mdi:television-play
-            grid_options: {columns: full, rows: 1}
-          - type: tile
+          - type: custom:mushroom-title-card
+            title: Media
+            subtitle: Tap for controls
+            grid_options: *title_size
+          - &media
+            type: custom:mushroom-template-card
             entity: media_player.living_room_apple_tv
-            name: Living room Apple TV
-            grid_options: {columns: full, rows: 1}
-          - type: tile
+            primary: Living room Apple TV
+            secondary: "{{ state_attr(entity, 'media_title') or state_translated(entity) }}"
+            icon: mdi:apple
+            icon_color: &media_color >-
+              {{ 'green' if is_state(entity, 'playing') else 'amber' if is_state(entity, 'paused')
+                 else 'disabled' }}
+            badge_icon: >-
+              {{ 'mdi:play' if is_state(entity, 'playing') else 'mdi:pause'
+                 if is_state(entity, 'paused') else '' }}
+            badge_color: *media_color
+            layout: vertical
+            fill_container: true
+            tap_action: *more_info
+            hold_action: *more_info
+            grid_options:
+              columns: 6
+              rows: 2
+          - <<: *media
             entity: media_player.loft
-            name: Loft Apple TV
-            grid_options: {columns: full, rows: 1}
-          - type: tile
+            primary: Loft Apple TV
+          - <<: *media
             entity: media_player.tv
-            name: Samsung TV
-            grid_options: {columns: full, rows: 1}
-          - type: tile
+            primary: Samsung TV
+            icon: mdi:television
+          - <<: *media
             entity: media_player.home_theater
-            name: Denon
-            grid_options: {columns: full, rows: 1}
+            primary: Denon
+            icon: mdi:audio-video
