@@ -11,7 +11,15 @@ views:
   # 10 rows ~ 632 px, which fills 1280x800 under the header). Every card has explicit rows.
   #   Left   = weather 6 + laundry 3 (Washer|Dryer state, progress, done) + temps 1 = 10
   #   Middle = Driveway 5 + Radar 5                              = 10
-  #   Right  = heading 1 + garage door 5 + entry 2 + lock|hatch 2 = 10
+  #   Right  = heading-or-banner 1 + garage door 5 + filter 2 + lock|hatch 2 = 10
+  # Status swaps (packages/wall_panel.yaml) are pairs/triples of conditional cards with the
+  # same grid_options, exactly one visible, so these totals never change:
+  #   washer/dryer: normal tile | green "Done" tile (2 h after a cycle ends)
+  #   garage: green closed | red open | red alert "10+ min" (binary_sensor.wall_garage_open_too_long)
+  #   filter: normal | amber under 20 % | red under 10 %
+  #   right column row 1: "Garage & car" heading | red attention banner (binary_sensor.wall_attention).
+  #   The banner reuses the heading's row instead of adding one: zero extra space when hidden,
+  #   and the right column stays at 10 when shown.
   - title: Home
     path: home
     icon: mdi:home
@@ -33,18 +41,58 @@ views:
               columns: full
               rows: 6
           # Laundry: washer left, dryer right; rows are state, progress, completion time.
-          - type: tile
-            entity: sensor.washer_machine_state
-            name: Washer
-            icon: mdi:washing-machine
+          # Washer and dryer: normal state tile, or a green "Done" tile (time since the
+          # cycle ended) for 2 h. Tapping the Done icon clears it early.
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: input_boolean.wall_washer_done
+                state_not: "on"
             grid_options: &laundry_size
               columns: 6
               rows: 1
-          - type: tile
-            entity: sensor.dryer_machine_state
-            name: Dryer
-            icon: mdi:tumble-dryer
+            card:
+              type: tile
+              entity: sensor.washer_machine_state
+              name: Washer
+              icon: mdi:washing-machine
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: input_boolean.wall_washer_done
+                state: "on"
             grid_options: *laundry_size
+            card:
+              type: tile
+              entity: input_boolean.wall_washer_done
+              name: "Washer: Done"
+              icon: mdi:washing-machine
+              color: green
+              state_content: last_changed
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: input_boolean.wall_dryer_done
+                state_not: "on"
+            grid_options: *laundry_size
+            card:
+              type: tile
+              entity: sensor.dryer_machine_state
+              name: Dryer
+              icon: mdi:tumble-dryer
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: input_boolean.wall_dryer_done
+                state: "on"
+            grid_options: *laundry_size
+            card:
+              type: tile
+              entity: input_boolean.wall_dryer_done
+              name: "Dryer: Done"
+              icon: mdi:tumble-dryer
+              color: green
+              state_content: last_changed
           - type: tile
             entity: sensor.living_room_washer_progress
             name: Washer progress
@@ -116,12 +164,30 @@ views:
       # visible; both ask "Open/close the garage?" before toggling.
       - type: grid
         cards:
-          - type: heading
-            heading: Garage & car
-            icon: mdi:garage
-            grid_options:
+          # Row 1: heading, or the attention banner in its place (same 1 row).
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: binary_sensor.wall_attention
+                state_not: "on"
+            grid_options: &banner_size
               columns: full
               rows: 1
+            card:
+              type: heading
+              heading: Garage & car
+              icon: mdi:garage
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: binary_sensor.wall_attention
+                state: "on"
+            grid_options: *banner_size
+            card:
+              type: markdown
+              text_only: true
+              content: >-
+                <ha-alert alert-type="error">{{ states('sensor.wall_attention_reasons') }}</ha-alert>
           - type: conditional
             conditions:
               - condition: state
@@ -165,6 +231,9 @@ views:
               - condition: state
                 entity: cover.garage_2
                 state_not: closed
+              - condition: state
+                entity: binary_sensor.wall_garage_open_too_long
+                state_not: "on"
             grid_options: *garage_size
             card:
               type: picture-elements
@@ -186,13 +255,78 @@ views:
                   tap_action: *garage_toggle
                   hold_action: *no_hold
                   style: *garage_label
-          - type: tile
-            entity: sensor.bedroom_core_200s_filter_lifetime
-            name: Bedroom filter
-            icon: mdi:air-filter
-            grid_options:
+          # Open (not closed) for 10+ minutes: alert icon and red label.
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: cover.garage_2
+                state_not: closed
+              - condition: state
+                entity: binary_sensor.wall_garage_open_too_long
+                state: "on"
+            grid_options: *garage_size
+            card:
+              type: picture-elements
+              image: *garage_bg
+              elements:
+                - type: icon
+                  icon: mdi:garage-alert
+                  entity: cover.garage_2
+                  tap_action: *garage_toggle
+                  hold_action: *no_hold
+                  style:
+                    top: 40%
+                    left: 50%
+                    color: "#e53935"
+                    --mdc-icon-size: 140px
+                - type: state-label
+                  entity: cover.garage_2
+                  prefix: "Garage door: "
+                  suffix: " 10+ min"
+                  tap_action: *garage_toggle
+                  hold_action: *no_hold
+                  style:
+                    <<: *garage_label
+                    color: "#e53935"
+          # Bedroom filter: normal (also when unavailable, so the slot is never empty),
+          # amber under 20 %, red under 10 %.
+          - type: conditional
+            conditions:
+              - condition: or
+                conditions:
+                  - condition: numeric_state
+                    entity: sensor.bedroom_core_200s_filter_lifetime
+                    above: 19.999
+                  - condition: state
+                    entity: sensor.bedroom_core_200s_filter_lifetime
+                    state: [unavailable, unknown]
+            grid_options: &filter_size
               columns: full
               rows: 2
+            card: &filter_tile
+              type: tile
+              entity: sensor.bedroom_core_200s_filter_lifetime
+              name: Bedroom filter
+              icon: mdi:air-filter
+          - type: conditional
+            conditions:
+              - condition: numeric_state
+                entity: sensor.bedroom_core_200s_filter_lifetime
+                above: 9.999
+                below: 20
+            grid_options: *filter_size
+            card:
+              <<: *filter_tile
+              color: amber
+          - type: conditional
+            conditions:
+              - condition: numeric_state
+                entity: sensor.bedroom_core_200s_filter_lifetime
+                below: 10
+            grid_options: *filter_size
+            card:
+              <<: *filter_tile
+              color: red
           # Nissan Rogue: no battery/range sensors exist; lock + hatch only.
           - type: tile
             entity: lock.jn8bt3dd1tw486371_lock

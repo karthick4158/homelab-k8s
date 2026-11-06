@@ -15,3 +15,4 @@ configMapGenerator:
     files:
       - config/configuration.yaml
       - config/dashboards/kiosk.yaml
+      - config/packages/wall_panel.yaml

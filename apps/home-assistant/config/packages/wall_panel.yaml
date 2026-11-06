@@ -1,0 +1,125 @@
+# Wall tablet status helpers, used only by dashboards/kiosk.yaml (Home tab).
+# Git-managed and mounted read-only. Display only: nothing in here sends notifications.
+# File name uses an underscore: !include_dir_named turns it into the package name, and
+# package names must be slugs ("wall-panel" would be rejected).
+
+input_boolean:
+  # On for 2 hours after a cycle ends (see automations below). initial: false so a
+  # restart never leaves a stale "Done" on the wall (the 2 h `for:` would not survive it).
+  wall_washer_done:
+    name: Washer done
+    icon: mdi:washing-machine
+    initial: false
+  wall_dryer_done:
+    name: Dryer done
+    icon: mdi:tumble-dryer
+    initial: false
+
+template:
+  - binary_sensor:
+      # Garage door not closed for 10 minutes (open, or stuck opening/closing).
+      - name: Wall garage open too long
+        unique_id: wall_garage_open_too_long
+        icon: mdi:garage-alert
+        delay_on: "00:10:00"
+        state: >-
+          {{ states('cover.garage_2') not in ['closed', 'unavailable', 'unknown'] }}
+
+      # Drives the attention banner on the Home tab.
+      - name: Wall attention
+        unique_id: wall_attention
+        icon: mdi:alert
+        state: >-
+          {{ states('sensor.wall_attention_reasons') not in ['none', 'unknown', 'unavailable', ''] }}
+
+  - sensor:
+      # Short banner text, e.g. "Garage open · Car unlocked · Doors: Pantry · 3 lights on".
+      # "none" when nothing needs attention. Lights only count 23:00-06:00 (now() makes
+      # this re-render every minute).
+      - name: Wall attention reasons
+        unique_id: wall_attention_reasons
+        icon: mdi:alert
+        state: >-
+          {% set doors = {
+            'binary_sensor.lumi_lumi_sensor_magnet_aq2_8c1ad107_on_off': 'Garage entry',
+            'binary_sensor.lumi_lumi_sensor_magnet_aq2_on_off': 'Coat room',
+            'binary_sensor.lumi_lumi_sensor_magnet_aq2_7c2abf07_on_off': 'Laundry',
+            'binary_sensor.lumi_lumi_sensor_magnet_aq2_372abf07_on_off': 'Pantry',
+            'binary_sensor.lumi_lumi_sensor_magnet_aq2_14481007_on_off': 'Office closet',
+          } %}
+          {% set lights = [
+            'light.backyard', 'light.garage_door', 'light.strip_light',
+            'light.stovetop_light', 'light.office_zig1_level_on_off', 'light.h6199_4d1f',
+            'light.powderroom_1', 'light.smart_bulb_2', 'light.guestbath1',
+            'light.guestbath2', 'light.guestbath3', 'light.mb1', 'light.mb2',
+            'light.mb3', 'light.mb4',
+          ] %}
+          {% set ns = namespace(r=[], d=[]) %}
+          {% if states('cover.garage_2') not in ['closed', 'unavailable', 'unknown'] %}
+            {% set ns.r = ns.r + ['Garage open'] %}
+          {% endif %}
+          {% if states('lock.jn8bt3dd1tw486371_lock') not in ['locked', 'locking', 'unavailable', 'unknown'] %}
+            {% set ns.r = ns.r + ['Car unlocked'] %}
+          {% endif %}
+          {% for e, n in doors.items() if is_state(e, 'on') %}
+            {% set ns.d = ns.d + [n] %}
+          {% endfor %}
+          {% if ns.d %}
+            {% set ns.r = ns.r + ['Doors: ' ~ ns.d | join(', ')] %}
+          {% endif %}
+          {% set lit = lights | select('is_state', 'on') | list | count %}
+          {% if (now().hour >= 23 or now().hour < 6) and lit > 0 %}
+            {% set ns.r = ns.r + [lit ~ (' light on' if lit == 1 else ' lights on')] %}
+          {% endif %}
+          {{ ns.r | join(' · ') if ns.r else 'none' }}
+
+automation:
+  # The repo does not show the raw machine_state values, so "stopped" is matched both as
+  # "stop" (SmartThings' raw value) and "stopped". Fires only on a real end of cycle, not
+  # when the sensor comes back from unavailable/unknown.
+  - id: wall_laundry_done_on
+    alias: Wall - laundry done
+    mode: queued
+    triggers:
+      - trigger: state
+        entity_id: sensor.washer_machine_state
+        to: [stop, stopped]
+        not_from: [stop, stopped, unavailable, unknown]
+        id: washer
+      - trigger: state
+        entity_id: sensor.dryer_machine_state
+        to: [stop, stopped]
+        not_from: [stop, stopped, unavailable, unknown]
+        id: dryer
+    actions:
+      - action: input_boolean.turn_on
+        target:
+          entity_id: "input_boolean.wall_{{ trigger.id }}_done"
+
+  # Clear "Done" after 2 hours, or as soon as that machine runs again.
+  - id: wall_laundry_done_off
+    alias: Wall - laundry done clear
+    mode: queued
+    triggers:
+      - trigger: state
+        entity_id: input_boolean.wall_washer_done
+        to: "on"
+        for: "02:00:00"
+        id: washer
+      - trigger: state
+        entity_id: input_boolean.wall_dryer_done
+        to: "on"
+        for: "02:00:00"
+        id: dryer
+      - trigger: state
+        entity_id: sensor.washer_machine_state
+        not_to: [stop, stopped, unavailable, unknown]
+        id: washer
+      - trigger: state
+        entity_id: sensor.dryer_machine_state
+        not_to: [stop, stopped, unavailable, unknown]
+        id: dryer
+    actions:
+      - action: input_boolean.turn_off
+        target:
+          entity_id: "input_boolean.wall_{{ trigger.id }}_done"

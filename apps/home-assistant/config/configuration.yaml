@@ -1,3 +1,8 @@
+# Packages: Git-managed files mounted read-only into /config/packages (packages/wall_panel.yaml
+# holds the wall dashboard's status helpers).
+homeassistant:
+  packages: !include_dir_named packages
+
 # Configure a default setup of Home Assistant (frontend, api, etc)
 default_config:
 
