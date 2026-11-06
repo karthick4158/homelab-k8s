@@ -9,7 +9,7 @@ spec:
     secretTemplates:
         - name: ha-prometheus-token
           stringData:
-            token: ENC[AES256_GCM,data:96aEWBRgAD/SpeEvhsemL8C2RjjjDg==,iv:MU39EtoDJZE98+ISOYuU7tfs/8i0pkpyCja2BsEpuv0=,tag:zw5SDER63uXN/j6e3OclMQ==,type:str]
+            token: ENC[AES256_GCM,data:+vbe2PcNejszN2SDnWo/TAksmBdVVh64bIZoDJrPu9xOma4TTUn7hF5UUADYsB8USLZI0jsgL5iEmZIdjJIV+PavFD0lr0f0iLIQVsGPcZLui5sVZx4KTv2sxZlyeMzqx8FpVXfXWzACzE3XIbUeT12nt1vYuwMf/rjHS0QaxJonWOn4jXolv0XvTeqg71ZMS3r6n6cUoDtyyW81O/u+YZyPGrbkFPSpulGs6J98NemKyUYgSIsq,iv:PQmcDDyFcv2Lh7fJ2nqb/YYUOzFlC6QFLatDbIg52a8=,tag:kiWH/9lsc0p6R3UPz6Pteg==,type:str]
 sops:
     age:
         - enc: |
@@ -22,6 +22,6 @@ sops:
             -----END AGE ENCRYPTED FILE-----
           recipient: age1tmzhe2zxesm02xf06al2hgml6tg5srw5ljr8ag9zm223jdswkgvq945ua9
     encrypted_regex: ^(data|stringData)$
-    lastmodified: "2026-11-06T17:18:21Z"
-    mac: ENC[AES256_GCM,data:VRg0enXqBIo3rg+ZYM9JUi+q4Cu1xfKOLR8tSXfZT5H1onhkpesfC65Jp1Gvy3O+OkbrhNGDz5KeJRSY9LpDSloIX9halz2wwAZu14S8RtW2FXTuc+3bs9Kn/a2DaqUlMV6y3m8hFdN03GkM6r1Cq3Ajvux6dWUACqAxz8k3FBA=,iv:6v5Tw4YeRCGMWZv0k4allD5RPe9QWRDTUDztolfPyTc=,tag:M17iywJsPRAygJVBhf+1nw==,type:str]
+    lastmodified: "2026-11-06T17:25:57Z"
+    mac: ENC[AES256_GCM,data:WL14MR61xw/X58VtG4UyjzGKvfT0vCaRFCsGHe110N/qRApWwZJcednfH1HW1XzKttUMElKSSTvjcSEulvZ3hvU1xyJ6/iaHPCe6yQKB77eZ2rIDzD/LlEIpiBfxTUsVd9D4HCxiJQg7xd/u2ZKid1pFdRo+2P9+KGzbadJPBkA=,iv:RuD+a1UIUZADvYJpB3wK1MDHeHAF0HRTy99BtbXqoP8=,tag:wDMcc6RXJN1PfO+k3es+pA==,type:str]
     version: 3.13.3
