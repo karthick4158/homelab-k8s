@@ -18,14 +18,15 @@ title: Wall
 views:
   # ---------------------------------------------------------------- Home
   # Row budget, every column exactly 10 rows:
-  #   Left   = weather 6 + Washer|Dryer 2 + Living Room|Loft|Bedroom 2            = 10
+  #   Left   = weather 4 + Printer|Black ink|Color ink 2 + Washer|Dryer 2
+  #            + Living Room|Loft|Bedroom 2                                       = 10
   #   Middle = Driveway 5 + Radar 5                                               = 10
-  #   Right  = title 2 (or banner 1 + spacer 1) + garage 4 + filter 2 + lock|hatch 2 = 10
+  #   Right  = title 2 (or banner 2) + garage 4 + filter 2 + lock|hatch 2          = 10
   # Status swaps (packages/wall_panel.yaml) are conditional cards with the same grid_options,
   # exactly one visible, so these totals never change:
   #   washer/dryer: normal card | green "Done" card (2 h after a cycle ends; tap clears it)
-  #   right column rows 1-2: "Garage & car" title (2) | red attention banner (1, unchanged)
-  #   + an empty 1-row spacer, both shown while binary_sensor.wall_attention is on.
+  #   right column rows 1-2: "Garage & car" title (2) | red attention banner (2), shown while
+  #   binary_sensor.wall_attention is on.
   # The garage open / open-10+-min states and the filter amber/red levels are now icon colour,
   # icon and badge templates on one Mushroom card each (Mushroom can colour a closed cover,
   # which the built-in tile could not).
@@ -48,7 +49,42 @@ views:
             show_forecast: true
             grid_options:
               columns: full
-              rows: 6
+              rows: 4
+          # Printer (Canon TR4700): status + black and color ink, same size/style as the
+          # temperature cards. Ink icon: green above 30 %, orange 10-30 %, red under 10 %.
+          - type: custom:mushroom-template-card
+            entity: sensor.canon_tr4700_series
+            primary: Printer
+            secondary: "{{ state_translated(entity) }}"
+            icon: mdi:printer
+            icon_color: "{{ 'disabled' if states(entity) in ['unavailable', 'unknown'] else 'blue' }}"
+            layout: vertical
+            fill_container: true
+            tap_action: &more_info
+              action: more-info
+            hold_action: *more_info
+            grid_options: &printer_size
+              columns: 4
+              rows: 2
+          - &ink
+            type: custom:mushroom-template-card
+            entity: sensor.canon_tr4700_series_black
+            primary: Black ink
+            secondary: >-
+              {%- set v = states(entity) | float(none) -%}
+              {{ (v | round(0) | int ~ ' %') if v is not none else state_translated(entity) }}
+            icon: mdi:water
+            icon_color: >-
+              {%- set v = states(entity) | float(none) -%}
+              {{ 'disabled' if v is none else 'red' if v < 10 else 'orange' if v <= 30 else 'green' }}
+            layout: vertical
+            fill_container: true
+            tap_action: *more_info
+            hold_action: *more_info
+            grid_options: *printer_size
+          - <<: *ink
+            entity: sensor.canon_tr4700_series_color
+            primary: Color ink
           # Laundry: one vertical card per machine. While a cycle runs the second line is
           # progress and completion time (the old progress/completion tiles); otherwise it
           # is the machine state. Badge: play while running, pause while paused.
@@ -85,8 +121,7 @@ views:
               badge_color: *machine_color
               layout: vertical
               fill_container: true
-              tap_action: &more_info
-                action: more-info
+              tap_action: *more_info
               hold_action: *more_info
           - type: conditional
             conditions:
@@ -147,9 +182,11 @@ views:
             type: custom:mushroom-template-card
             entity: climate.living_room
             primary: Living Room
+            # Same format for thermostats and sensors: one decimal + " °F" (e.g. 72.0 °F).
             secondary: >-
-              {{ state_attr(entity, 'current_temperature') ~ '°'
-                 if entity.startswith('climate.') else states(entity, with_unit=True) }}
+              {%- set t = (state_attr(entity, 'current_temperature')
+                           if entity.startswith('climate.') else states(entity)) | float(none) -%}
+              {{ ('%.1f °F' | format(t)) if t is not none else state_translated(entity) }}
             icon: mdi:home-thermometer
             icon_color: >-
               {%- set t = (state_attr(entity, 'current_temperature')
@@ -187,6 +224,8 @@ views:
             name: Radar
             camera_view: auto
             fit_mode: contain
+            # The name bar sat on top of the map legend; hidden, card size unchanged.
+            show_name: false
             show_state: false
             grid_options:
               columns: full
@@ -195,7 +234,7 @@ views:
       # Right: garage and car.
       - type: grid
         cards:
-          # Rows 1-2: title, or the attention banner (1 row, unchanged) + an empty 1-row spacer.
+          # Rows 1-2: title, or the attention banner (same 2 rows, no spacer).
           - type: conditional
             conditions:
               - condition: state
@@ -213,12 +252,12 @@ views:
               - condition: state
                 entity: binary_sensor.wall_attention
                 state: "on"
-            grid_options: &banner_size
-              columns: full
-              rows: 1
-            # Loud static banner (no flashing without card-mod): solid red picture-elements
-            # bar. The SVG spacer is itself solid red and stretches (preserveAspectRatio=none);
-            # the reasons label also paints a full-size red box, so the bar is solid either way.
+            grid_options: *title_size
+            # Loud static banner (no flashing without card-mod): solid red picture-elements card.
+            # The image (red SVG) only sets the element area's height from the card width, so it
+            # left a dark strip below it. The reasons label now ignores the image: it is pinned to
+            # the top-left and sized to the full 2-row cell (2 x --row-height + 1 x --row-gap,
+            # the sections grid variables, ~120 px), painting the whole card red edge to edge.
             card:
               type: picture-elements
               image: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='10' viewBox='0 0 100 10' preserveAspectRatio='none'%3E%3Crect width='100' height='10' fill='%23d50000'/%3E%3C/svg%3E"
@@ -229,67 +268,112 @@ views:
                     action: none
                   hold_action: *no_action
                   style:
-                    top: 50%
-                    left: 50%
+                    top: 0
+                    left: 0
+                    transform: none
                     width: 100%
-                    height: 100%
+                    height: calc(2 * var(--row-height, 56px) + var(--row-gap, 8px))
                     box-sizing: border-box
                     display: flex
                     align-items: center
-                    padding: 0 12px 0 64px
+                    padding: 0 12px 0 72px
                     background-color: "#d50000"
                     color: "#ffffff"
                     font-size: 26px
                     font-weight: bold
-                    line-height: 1.1
-                    white-space: nowrap
+                    line-height: 1.15
+                    white-space: normal
                     overflow: hidden
                 - type: icon
                   icon: mdi:alert
                   tap_action: *no_action
                   hold_action: *no_action
                   style:
-                    top: 50%
-                    left: 30px
+                    # Vertically centred in the 2-row card, not in the image.
+                    top: calc((2 * var(--row-height, 56px) + var(--row-gap, 8px)) / 2)
+                    left: 36px
                     color: "#ffffff"
-                    --mdc-icon-size: 40px
-          # Spacer under the banner so the column stays at 10 rows (title 2 = banner 1 + 1).
-          - type: conditional
-            conditions:
-              - condition: state
-                entity: binary_sensor.wall_attention
-                state: "on"
-            grid_options: *banner_size
-            card:
-              type: custom:mushroom-title-card
-          # Garage door: green garage + check badge when closed; red open garage otherwise;
-          # red garage-alert + "10+ min" when binary_sensor.wall_garage_open_too_long is on.
-          # Tap asks "Open/close the garage?" before toggling.
-          - type: custom:mushroom-template-card
-            entity: cover.garage_2
-            primary: Garage door
-            secondary: >-
-              {{ state_translated(entity) }}{{ ' 10+ min'
-                 if not is_state(entity, 'closed')
-                 and is_state('binary_sensor.wall_garage_open_too_long', 'on') else '' }}
-            icon: >-
-              {{ 'mdi:garage' if is_state(entity, 'closed')
-                 else 'mdi:garage-alert' if is_state('binary_sensor.wall_garage_open_too_long', 'on')
-                 else 'mdi:garage-open' }}
-            icon_color: &garage_color "{{ 'green' if is_state(entity, 'closed') else 'red' }}"
-            badge_icon: >-
-              {{ 'mdi:check' if is_state(entity, 'closed')
-                 else 'mdi:alert' if is_state('binary_sensor.wall_garage_open_too_long', 'on')
-                 else 'mdi:arrow-up-bold' }}
-            badge_color: *garage_color
-            layout: vertical
-            fill_container: true
-            tap_action:
-              action: toggle
-              confirmation:
-                text: Open/close the garage?
-            hold_action:
-              action: none
+                    --mdc-icon-size: 48px
+          # Garage door: big icon (~88 px) so the 4-row card is not mostly empty. Mushroom's
+          # template card has no icon-size option without card-mod, so this is a built-in
+          # picture-elements card on a transparent image, with elements sized to the 4-row cell
+          # (4 x --row-height + 3 x --row-gap, ~248 px). One conditional group per state:
+          #   closed                         -> green mdi:garage,       "Garage door · Closed"
+          #   open, under 10 min             -> red   mdi:garage-open,  "Garage door · Open"
+          #   open 10+ min (wall_garage_open_too_long on) -> red mdi:garage-alert, "... 10+ min"
+          # Tapping the icon or the text asks "Open/close the garage?" before toggling.
+          - type: picture-elements
+            image: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='10' viewBox='0 0 100 10'%3E%3C/svg%3E"
+            elements:
+              - type: conditional
+                conditions:
+                  - condition: state
+                    entity: cover.garage_2
+                    state: closed
+                elements:
+                  - &garage_icon
+                    type: icon
+                    icon: mdi:garage
+                    tap_action: &garage_tap
+                      action: toggle
+                      entity: cover.garage_2
+                      confirmation:
+                        text: Open/close the garage?
+                    hold_action: *no_action
+                    style: &garage_icon_style
+                      top: calc((4 * var(--row-height, 56px) + 3 * var(--row-gap, 8px)) * 0.42)
+                      left: 50%
+                      color: "var(--green-color, #4caf50)"
+                      --mdc-icon-size: 88px
+                  - &garage_label
+                    type: state-label
+                    entity: cover.garage_2
+                    prefix: "Garage door · "
+                    tap_action: *garage_tap
+                    hold_action: *no_action
+                    style: &garage_label_style
+                      top: calc((4 * var(--row-height, 56px) + 3 * var(--row-gap, 8px)) * 0.8)
+                      left: 50%
+                      width: 100%
+                      text-align: center
+                      color: var(--primary-text-color)
+                      font-size: 22px
+                      font-weight: bold
+                      white-space: nowrap
+              - type: conditional
+                conditions:
+                  - condition: state
+                    entity: cover.garage_2
+                    state_not: closed
+                  - condition: state
+                    entity: binary_sensor.wall_garage_open_too_long
+                    state_not: "on"
+                elements:
+                  - <<: *garage_icon
+                    icon: mdi:garage-open
+                    style:
+                      <<: *garage_icon_style
+                      color: "var(--red-color, #f44336)"
+                  - *garage_label
+              - type: conditional
+                conditions:
+                  - condition: state
+                    entity: cover.garage_2
+                    state_not: closed
+                  - condition: state
+                    entity: binary_sensor.wall_garage_open_too_long
+                    state: "on"
+                elements:
+                  - <<: *garage_icon
+                    icon: mdi:garage-alert
+                    style:
+                      <<: *garage_icon_style
+                      color: "var(--red-color, #f44336)"
+                  - <<: *garage_label
+                    suffix: " 10+ min"
+                    style:
+                      <<: *garage_label_style
+                      color: "var(--red-color, #f44336)"
             grid_options:
               columns: full
               rows: 4
