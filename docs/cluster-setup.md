@@ -128,6 +128,23 @@ kubeadm init --pod-network-cidr=10.244.0.0/16 \
   (names from `pve_guest_info`), storage usage by storage name, guests without a backup job. The
   exporter has no last-backup-time metric.
 
+### OMV metrics
+
+- The OpenMediaVault server (bare-metal Debian, 10.0.0.65) runs node_exporter from the Debian
+  package. On OMV, once: `sudo apt install -y prometheus-node-exporter`, then check
+  `curl -s localhost:9100/metrics | head -3`.
+- node_exporter listens on the LAN, unauthenticated, on :9100 (anyone on the network can read the
+  host metrics). No OMV firewall changes were made.
+- `infrastructure/monitoring/omv-scrape.yaml`: selector-less Service `omv-node-exporter` (port
+  `metrics`, 9100), an Endpoints object pointing at 10.0.0.65:9100, and a ServiceMonitor scraping
+  `/metrics` every 30s with `instance="omv"` (job `omv-node-exporter`, separate from the
+  in-cluster `node-exporter` job, so the chart's node alerts and recording rules do not cover OMV).
+- Grafana dashboard "OpenMediaVault" (uid `omv-host`): `infrastructure/monitoring/dashboards/omv.json`,
+  ConfigMap `grafana-dashboard-omv` (label `grafana_dashboard: "1"`). Up, uptime, CPU, load,
+  memory/swap, filesystem used/free per mountpoint, network, disk IO, temperatures (empty if the
+  board exposes no hwmon sensors). node_exporter reports filesystem sizes only, never file names or
+  contents.
+
 ### Headlamp
 
 - Kubernetes web UI (pods, logs, events, nodes, workloads). Chart 0.46.0

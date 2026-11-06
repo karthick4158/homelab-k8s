@@ -10,6 +10,7 @@ resources:
   - pve-exporter.yaml
   - pve-servicemonitor.yaml
   - pve-exporter-token.sops.yaml
+  - omv-scrape.yaml
 
 # Grafana dashboards as JSON in Git. The Grafana sidecar loads every ConfigMap labelled
 # grafana_dashboard: "1" in this namespace (kube-prometheus-stack default).
@@ -24,6 +25,13 @@ configMapGenerator:
   - name: grafana-dashboard-proxmox
     files:
       - dashboards/proxmox.json
+    options:
+      disableNameSuffixHash: true
+      labels:
+        grafana_dashboard: "1"
+  - name: grafana-dashboard-omv
+    files:
+      - dashboards/omv.json
     options:
       disableNameSuffixHash: true
       labels:
