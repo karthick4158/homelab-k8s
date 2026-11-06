@@ -59,10 +59,11 @@ spec:
                   resources:
                     requests:
                       storage: 10Gi
-            # Pick up ServiceMonitors/PodMonitors from any namespace, not only
-            # the ones labelled for this Helm release.
+            # Pick up ServiceMonitors/PodMonitors/ScrapeConfigs from any
+            # namespace, not only the ones labelled for this Helm release.
             serviceMonitorSelectorNilUsesHelmValues: false
             podMonitorSelectorNilUsesHelmValues: false
+            scrapeConfigSelectorNilUsesHelmValues: false
 
         # Default config: every alert goes to the "null" receiver. A
         # notification channel (email, ntfy, Telegram, ...) is still to pick.

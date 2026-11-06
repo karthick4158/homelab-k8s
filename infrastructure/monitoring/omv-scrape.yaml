@@ -1,50 +1,26 @@
 # Prometheus scrapes node_exporter on the OpenMediaVault server (bare-metal Debian, 10.0.0.65:9100,
-# Debian package prometheus-node-exporter). OMV is outside the cluster, so the Service has no
-# selector and a hand-written Endpoints object points it at the host. kube-prometheus-stack runs
-# with serviceMonitorSelectorNilUsesHelmValues: false, so this ServiceMonitor is picked up without a
-# release label (same as pve-servicemonitor.yaml). The job label is the Service name,
-# omv-node-exporter, so it never mixes with the in-cluster node-exporter job; instance is fixed to
-# "omv".
-apiVersion: v1
-kind: Service
-metadata:
-  name: omv-node-exporter
-  labels:
-    app: omv-node-exporter
-spec:
-  clusterIP: None
-  ports:
-    - name: metrics
-      port: 9100
-      targetPort: 9100
----
-apiVersion: v1
-kind: Endpoints
-metadata:
-  name: omv-node-exporter  # must match the Service name
-  labels:
-    app: omv-node-exporter
-subsets:
-  - addresses:
-      - ip: 10.0.0.65
-    ports:
-      - name: metrics  # must match the Service port name
-        port: 9100
----
-apiVersion: monitoring.coreos.com/v1
-kind: ServiceMonitor
+# Debian package prometheus-node-exporter). OMV is outside the cluster, so this is a Prometheus
+# Operator ScrapeConfig with a static target. (A selector-less Service + hand-written Endpoints +
+# ServiceMonitor was tried first, but Argo CD never synced the Endpoints object.)
+# kube-prometheus-stack runs with scrapeConfigSelectorNilUsesHelmValues: false
+# (argocd-apps/monitoring.yaml), so this is picked up without a release label.
+# jobName sets the job label to omv-node-exporter, so it never mixes with the in-cluster
+# node-exporter job (and the OMV dashboard selects on it); instance is fixed to "omv".
+# Field names checked against the ScrapeConfig v1alpha1 CRD shipped in kube-prometheus-stack
+# 92.21.2 (Prometheus Operator v0.94.2).
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: ScrapeConfig
 metadata:
   name: omv-node-exporter
 spec:
-  selector:
-    matchLabels:
-      app: omv-node-exporter
-  endpoints:
-    - port: metrics
-      path: /metrics
-      scheme: http
-      interval: 30s
-      scrapeTimeout: 10s
-      relabelings:
-        - targetLabel: instance
-          replacement: omv
+  jobName: omv-node-exporter
+  scheme: HTTP
+  metricsPath: /metrics
+  scrapeInterval: 30s
+  scrapeTimeout: 10s
+  staticConfigs:
+    - targets:
+        - 10.0.0.65:9100
+  relabelings:
+    - targetLabel: instance
+      replacement: omv

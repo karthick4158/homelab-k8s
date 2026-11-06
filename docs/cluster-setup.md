@@ -135,10 +135,16 @@ kubeadm init --pod-network-cidr=10.244.0.0/16 \
   `curl -s localhost:9100/metrics | head -3`.
 - node_exporter listens on the LAN, unauthenticated, on :9100 (anyone on the network can read the
   host metrics). No OMV firewall changes were made.
-- `infrastructure/monitoring/omv-scrape.yaml`: selector-less Service `omv-node-exporter` (port
-  `metrics`, 9100), an Endpoints object pointing at 10.0.0.65:9100, and a ServiceMonitor scraping
-  `/metrics` every 30s with `instance="omv"` (job `omv-node-exporter`, separate from the
-  in-cluster `node-exporter` job, so the chart's node alerts and recording rules do not cover OMV).
+- `infrastructure/monitoring/omv-scrape.yaml`: a Prometheus Operator `ScrapeConfig`
+  (`monitoring.coreos.com/v1alpha1`) with the static target 10.0.0.65:9100, scraping `/metrics`
+  every 30s with `instance="omv"` (`jobName: omv-node-exporter`, separate from the in-cluster
+  `node-exporter` job, so the chart's node alerts and recording rules do not cover OMV).
+  A ScrapeConfig is used because the first attempt (selector-less Service + hand-written Endpoints
+  + ServiceMonitor) did not work: Argo CD does not sync hand-written Endpoints objects, so
+  Prometheus had no target. `argocd-apps/monitoring.yaml` sets
+  `scrapeConfigSelectorNilUsesHelmValues: false` so Prometheus selects ScrapeConfigs without a
+  `release` label. Check: `kubectl -n monitoring get scrapeconfig omv-node-exporter`, then
+  Prometheus → Status → Targets, job `omv-node-exporter`.
 - Grafana dashboard "OpenMediaVault" (uid `omv-host`): `infrastructure/monitoring/dashboards/omv.json`,
   ConfigMap `grafana-dashboard-omv` (label `grafana_dashboard: "1"`). Up, uptime, CPU, load,
   memory/swap, filesystem used/free per mountpoint, network, disk IO, temperatures (empty if the
