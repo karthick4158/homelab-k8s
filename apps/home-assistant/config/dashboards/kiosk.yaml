@@ -187,9 +187,9 @@ views:
                   hold_action: *no_hold
                   style: *garage_label
           - type: tile
-            entity: binary_sensor.lumi_lumi_sensor_magnet_aq2_8c1ad107_on_off
-            name: Garage entry
-            icon: mdi:door
+            entity: sensor.bedroom_core_200s_filter_lifetime
+            name: Bedroom filter
+            icon: mdi:air-filter
             grid_options:
               columns: full
               rows: 2
