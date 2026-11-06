@@ -33,7 +33,7 @@ template:
           {{ states('sensor.wall_attention_reasons') not in ['none', 'unknown', 'unavailable', ''] }}
 
   - sensor:
-      # Short banner text, e.g. "Garage open · Car unlocked · Garage entry open · 3 lights on".
+      # Short banner text, e.g. "Garage open · Car unlocked · 3 lights on".
       # "none" when nothing needs attention. Lights only count 23:00-06:00 (now() makes
       # this re-render every minute).
       - name: Wall attention reasons
@@ -53,9 +53,6 @@ template:
           {% endif %}
           {% if states('lock.jn8bt3dd1tw486371_lock') not in ['locked', 'locking', 'unavailable', 'unknown'] %}
             {% set ns.r = ns.r + ['Car unlocked'] %}
-          {% endif %}
-          {% if is_state('binary_sensor.lumi_lumi_sensor_magnet_aq2_8c1ad107_on_off', 'on') %}
-            {% set ns.r = ns.r + ['Garage entry open'] %}
           {% endif %}
           {% set lit = lights | select('is_state', 'on') | list | count %}
           {% if (now().hour >= 23 or now().hour < 6) and lit > 0 %}
