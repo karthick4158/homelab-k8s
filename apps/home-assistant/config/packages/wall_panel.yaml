@@ -33,20 +33,13 @@ template:
           {{ states('sensor.wall_attention_reasons') not in ['none', 'unknown', 'unavailable', ''] }}
 
   - sensor:
-      # Short banner text, e.g. "Garage open · Car unlocked · Doors: Pantry · 3 lights on".
+      # Short banner text, e.g. "Garage open · Car unlocked · Garage entry open · 3 lights on".
       # "none" when nothing needs attention. Lights only count 23:00-06:00 (now() makes
       # this re-render every minute).
       - name: Wall attention reasons
         unique_id: wall_attention_reasons
         icon: mdi:alert
         state: >-
-          {% set doors = {
-            'binary_sensor.lumi_lumi_sensor_magnet_aq2_8c1ad107_on_off': 'Garage entry',
-            'binary_sensor.lumi_lumi_sensor_magnet_aq2_on_off': 'Coat room',
-            'binary_sensor.lumi_lumi_sensor_magnet_aq2_7c2abf07_on_off': 'Laundry',
-            'binary_sensor.lumi_lumi_sensor_magnet_aq2_372abf07_on_off': 'Pantry',
-            'binary_sensor.lumi_lumi_sensor_magnet_aq2_14481007_on_off': 'Office closet',
-          } %}
           {% set lights = [
             'light.backyard', 'light.garage_door', 'light.strip_light',
             'light.stovetop_light', 'light.office_zig1_level_on_off', 'light.h6199_4d1f',
@@ -54,18 +47,15 @@ template:
             'light.guestbath2', 'light.guestbath3', 'light.mb1', 'light.mb2',
             'light.mb3', 'light.mb4',
           ] %}
-          {% set ns = namespace(r=[], d=[]) %}
+          {% set ns = namespace(r=[]) %}
           {% if states('cover.garage_2') not in ['closed', 'unavailable', 'unknown'] %}
             {% set ns.r = ns.r + ['Garage open'] %}
           {% endif %}
           {% if states('lock.jn8bt3dd1tw486371_lock') not in ['locked', 'locking', 'unavailable', 'unknown'] %}
             {% set ns.r = ns.r + ['Car unlocked'] %}
           {% endif %}
-          {% for e, n in doors.items() if is_state(e, 'on') %}
-            {% set ns.d = ns.d + [n] %}
-          {% endfor %}
-          {% if ns.d %}
-            {% set ns.r = ns.r + ['Doors: ' ~ ns.d | join(', ')] %}
+          {% if is_state('binary_sensor.lumi_lumi_sensor_magnet_aq2_8c1ad107_on_off', 'on') %}
+            {% set ns.r = ns.r + ['Garage entry open'] %}
           {% endif %}
           {% set lit = lights | select('is_state', 'on') | list | count %}
           {% if (now().hour >= 23 or now().hour < 6) and lit > 0 %}
