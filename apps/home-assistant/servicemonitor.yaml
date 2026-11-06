@@ -1,0 +1,24 @@
+# Prometheus scrapes Home Assistant's exporter (prometheus: in config/configuration.yaml).
+# kube-prometheus-stack runs with serviceMonitorSelectorNilUsesHelmValues: false, so it picks up
+# ServiceMonitors from any namespace without a release label. HA runs on the host network, so the
+# endpoint is k8s-worker-1's IP on port 8123. The Bearer token is a long-lived access token from
+# an HA user, kept in ha-prometheus-token.sops.yaml.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: home-assistant
+spec:
+  selector:
+    matchLabels:
+      app: home-assistant
+  endpoints:
+    - port: http
+      path: /api/prometheus
+      scheme: http
+      interval: 60s
+      scrapeTimeout: 30s
+      authorization:
+        type: Bearer
+        credentials:
+          name: ha-prometheus-token
+          key: token

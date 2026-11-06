@@ -88,6 +88,21 @@ kubeadm init --pod-network-cidr=10.244.0.0/16 \
 - Alertmanager has no notification channel yet (all alerts go to the `null` receiver).
 - Fallback without Traefik: `kubectl -n monitoring port-forward svc/monitoring-grafana 3000:80`.
 
+### Home Assistant metrics
+
+- HA's `prometheus:` integration (`apps/home-assistant/config/configuration.yaml`) exports only
+  the curated entities listed there at `/api/prometheus`. Add an entity there to graph it.
+- `apps/home-assistant/servicemonitor.yaml` scrapes the `home-assistant` Service (port `http`,
+  8123) every 60s with a Bearer token from Secret `ha-prometheus-token` (key `token`), made by
+  `apps/home-assistant/ha-prometheus-token.sops.yaml`.
+- Token: in HA, profile > Security > Long-lived access tokens > Create. Then, from the repo root
+  (zsh; reads the token without echoing it, skips an empty input):
+  `read -rs 'TOKEN?HA token: '; echo; [[ -n $TOKEN ]] && printf '%s' "$TOKEN" | jq -Rs . | sops set --value-stdin apps/home-assistant/ha-prometheus-token.sops.yaml '["spec"]["secretTemplates"][0]["stringData"]["token"]'; unset TOKEN`
+  Commit and push.
+- Grafana dashboard "Home": `infrastructure/monitoring/dashboards/home.json`, shipped as ConfigMap
+  `grafana-dashboard-home` (label `grafana_dashboard: "1"`) that the Grafana sidecar loads.
+  HA exports temperatures in Celsius; the panels convert to °F.
+
 ### Headlamp
 
 - Kubernetes web UI (pods, logs, events, nodes, workloads). Chart 0.46.0

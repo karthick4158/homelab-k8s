@@ -6,6 +6,8 @@ namespace: home-assistant
 resources:
   - namespace.yaml
   - home-assistant.yaml
+  - servicemonitor.yaml
+  - ha-prometheus-token.sops.yaml
 
 configMapGenerator:
   # Hand-edited HA config, versioned in Git; a change rolls the pod (hash suffix).

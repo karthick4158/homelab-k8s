@@ -6,6 +6,80 @@ homeassistant:
 # Configure a default setup of Home Assistant (frontend, api, etc)
 default_config:
 
+# Prometheus exporter at /api/prometheus (needs a long-lived access token as Bearer).
+# Scraped by kube-prometheus-stack via apps/home-assistant/servicemonitor.yaml and drawn by
+# the Grafana "Home" dashboard (infrastructure/monitoring/dashboards/home.json).
+# Only the curated entities below are exported, all taken from the wall dashboard.
+prometheus:
+  filter:
+    include_entities:
+      # Climate and temperatures
+      - climate.living_room
+      - climate.loft
+      - sensor.bedroom_temperature
+      - weather.home
+      # Air purifier and printer
+      - sensor.bedroom_core_200s_filter_lifetime
+      - sensor.canon_tr4700_series
+      - sensor.canon_tr4700_series_black
+      - sensor.canon_tr4700_series_color
+      # Washer and dryer
+      - sensor.washer_machine_state
+      - sensor.washer_completion_time
+      - sensor.living_room_washer_progress
+      - sensor.dryer_machine_state
+      - sensor.dryer_completion_time
+      - sensor.living_room_dryer_progress
+      # Garage, car, attention banner
+      - cover.garage_2
+      - binary_sensor.wall_garage_open_too_long
+      - lock.jn8bt3dd1tw486371_lock
+      - binary_sensor.jn8bt3dd1tw486371_hatch
+      - binary_sensor.wall_attention
+      # ESPHome sprinkler zones
+      - switch.sprinkler_controller_01_sprinkler_01
+      - switch.sprinkler_controller_01_sprinkler_02
+      - switch.sprinkler_controller_01_sprinkler_03
+      - switch.sprinkler_controller_01_sprinkler_04
+      - switch.sprinkler_5
+      - switch.sprinkler_6
+      - switch.sprinkler_7
+      - switch.sprinkler_8
+      - switch.sprinkler_controller_3_sprinkler_1
+      - switch.sprinkler_controller_3_sprinkler_2
+      - switch.sprinkler_controller_3_sprinkler_3
+      - switch.sprinkler_controller_3_sprinkler_4
+      # Main switches
+      - switch.z_main_switch_c1
+      - switch.z_c2_main_switch
+      # Plugs (wall dashboard "Plugs" section)
+      - switch.coat_room
+      - switch.laundry
+      - switch.mb_closet
+      - switch.office_closet
+      - switch.pantry
+      - switch.rice_cooker
+      - switch.tv
+      - switch.projector
+      - switch.iphone_charger
+      - switch.vaccum_charger
+      # Lights (wall dashboard "All lights off")
+      - light.backyard
+      - light.garage_door
+      - light.strip_light
+      - light.stovetop_light
+      - light.office_zig1_level_on_off
+      - light.h6199_4d1f
+      - light.powderroom_1
+      - light.smart_bulb_2
+      - light.guestbath1
+      - light.guestbath2
+      - light.guestbath3
+      - light.mb1
+      - light.mb2
+      - light.mb3
+      - light.mb4
+
 frontend:
   themes: !include_dir_merge_named themes
 

@@ -1,0 +1,27 @@
+# Long-lived access token Prometheus uses to scrape /api/prometheus (see servicemonitor.yaml).
+# Create it in HA: profile > Security > Long-lived access tokens. Set it with `sops set`
+# (docs/cluster-setup.md, Home Assistant metrics).
+apiVersion: isindir.github.com/v1alpha3
+kind: SopsSecret
+metadata:
+    name: ha-prometheus-token
+spec:
+    secretTemplates:
+        - name: ha-prometheus-token
+          stringData:
+            token: ENC[AES256_GCM,data:96aEWBRgAD/SpeEvhsemL8C2RjjjDg==,iv:MU39EtoDJZE98+ISOYuU7tfs/8i0pkpyCja2BsEpuv0=,tag:zw5SDER63uXN/j6e3OclMQ==,type:str]
+sops:
+    age:
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSB6ZWZkbjEwNWdDRUl6NXZE
+            QmNVZGpSSWdQbFN6VTVnRzZBWFhraEVVVGdzCmZ0WXJTeENaTWpUaDZXendrcDNN
+            clZvZm82UUVpQlN0ZVBvWFVzc0ZsQmMKLS0tIFhjamVyakJGaFBUNkFQSHJBSzhX
+            WW9KTzF4VHJVdzYydXdXT29ybmorYzgKgclCrDf0RUPqf8HVGpQvnRfDaOsLUrCZ
+            4DftHxbrEQCfsPcSlvBwIFdHn7F4jNe7F5l8TJN/moFfSCco6ZOTCg==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age1tmzhe2zxesm02xf06al2hgml6tg5srw5ljr8ag9zm223jdswkgvq945ua9
+    encrypted_regex: ^(data|stringData)$
+    lastmodified: "2026-11-06T17:18:21Z"
+    mac: ENC[AES256_GCM,data:VRg0enXqBIo3rg+ZYM9JUi+q4Cu1xfKOLR8tSXfZT5H1onhkpesfC65Jp1Gvy3O+OkbrhNGDz5KeJRSY9LpDSloIX9halz2wwAZu14S8RtW2FXTuc+3bs9Kn/a2DaqUlMV6y3m8hFdN03GkM6r1Cq3Ajvux6dWUACqAxz8k3FBA=,iv:6v5Tw4YeRCGMWZv0k4allD5RPe9QWRDTUDztolfPyTc=,tag:M17iywJsPRAygJVBhf+1nw==,type:str]
+    version: 3.13.3
