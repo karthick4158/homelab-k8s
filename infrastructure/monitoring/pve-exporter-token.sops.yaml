@@ -8,7 +8,7 @@ spec:
     secretTemplates:
         - name: pve-exporter-token
           stringData:
-            PVE_TOKEN_VALUE: ENC[AES256_GCM,data:a0bqHwUocniWf8WHsn/5HYikaInlBmNrXaUIFxQ=,iv:Mortgk0yRZIFEoZyrGEg2sbVOjHIKVXY1hZNM3cCnE0=,tag:6D/co9YODU/n4gPN8oF5UQ==,type:str]
+            PVE_TOKEN_VALUE: ENC[AES256_GCM,data:5D31j3n+2t7nW6JEuOONUU+ZLPjeOgNz+72omEZshlselmzL,iv:/KAupYUAt79EE7eYi7zZ2d9hJxh1gn9tQHf5XQ2zdNM=,tag:JZgmxIkETM2YN21MTz0sRQ==,type:str]
 sops:
     age:
         - enc: |
@@ -21,6 +21,6 @@ sops:
             -----END AGE ENCRYPTED FILE-----
           recipient: age1tmzhe2zxesm02xf06al2hgml6tg5srw5ljr8ag9zm223jdswkgvq945ua9
     encrypted_regex: ^(data|stringData)$
-    lastmodified: "2026-11-06T21:20:04Z"
-    mac: ENC[AES256_GCM,data:dwwaM1MC1wI0aLswAgyt7skRAxqqP4qiuPahCFaFgry6rG7pC+H4rePmetDqgMiKHtd1W1/0HPZ8NDnXTAZcwgh6ScntYwi5WakT/RJc0zxGPR9YSVWOxP0PTXk9bmsQOGnbwXeaiajBk8JE//CQXSt1yMEoR4pXqkXo0b2X2Y8=,iv:xm/80z0HTzWaZNN9RNDIzpmwzmM2cLrE3OtKsKSklkA=,tag:PcOQINSYgGWU3tZNfOJxyA==,type:str]
+    lastmodified: "2026-11-06T22:19:46Z"
+    mac: ENC[AES256_GCM,data:7ZFyutvSTLu9RqTE5Yqr6YUISXv5muCtEXx1CGGC8sFwK6viYdgWdwhXZ/96NGMYrRdnaPwbq/cqq/tH3+okMXTEuq2APROE4U08xsw4xg/n65ZEq90S7p71KAdwhqpellbkmfFMSVe2XsXduDqJo2k8eOiwAeFVoVTRFSoEuHk=,iv:Qe/lvw80ND+L3E0a3vFqd+pTLry9tP2HGODAEeyQ77Y=,tag:8rwQwGRTqSuZvx17DmWFeg==,type:str]
     version: 3.13.3
