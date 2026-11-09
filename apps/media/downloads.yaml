@@ -160,7 +160,7 @@ spec:
               memory: 512Mi
 
         - name: radarr
-          image: lscr.io/linuxserver/radarr:6.4.4.10685-ls325
+          image: lscr.io/linuxserver/radarr:6.4.4.10685-ls326
           env:
             # Same user/group as qBittorrent (see above).
             - name: PUID
