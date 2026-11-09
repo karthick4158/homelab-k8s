@@ -37,7 +37,7 @@ spec:
         kubernetes.io/hostname: k8s-worker-1  # USB stick is on VM 202
       containers:
         - name: home-assistant
-          image: ghcr.io/home-assistant/home-assistant:2026.11.0
+          image: ghcr.io/home-assistant/home-assistant:2026.11.1
           ports:
             - name: http
               containerPort: 8123
