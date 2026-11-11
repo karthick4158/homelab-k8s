@@ -12,7 +12,7 @@ spec:
   source:
     repoURL: https://isindir.github.io/sops-secrets-operator/
     chart: sops-secrets-operator
-    targetRevision: 0.29.2
+    targetRevision: 0.29.3
     helm:
       valuesObject:
         secretsAsFiles:
