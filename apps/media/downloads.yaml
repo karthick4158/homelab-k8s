@@ -242,7 +242,7 @@ spec:
               memory: 1Gi
         
         - name: prowlarr
-          image: lscr.io/linuxserver/prowlarr:2.7.0.5723-ls167
+          image: lscr.io/linuxserver/prowlarr:2.7.0.5723-ls168
           env:
             # Same user/group as the other apps (see above).
             - name: PUID
