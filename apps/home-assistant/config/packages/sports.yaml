@@ -1,0 +1,166 @@
+# Tennis scores for the wall tablet's Sports tab (dashboards/kiosk.yaml). Display only:
+# nothing in here sends notifications (the Telegram alerts are apps/tennis, unchanged).
+# Git-managed and mounted read-only, like wall_panel.yaml.
+#
+# Source: ESPN's public (unofficial, undocumented) scoreboard JSON, the same feed the tennis
+# notifier polls. One request per tour returns every match of each running tournament (all
+# days, singles and doubles) under events[].groupings[].competitions[], ~130-170 KB.
+#
+# Why rest_command + a trigger-based template instead of a `rest` sensor: a rest sensor can
+# only keep the JSON as entity attributes, i.e. ~150 KB of state pushed to every dashboard and
+# too large for the recorder. Here the JSON only lives inside the 2-minute run; the entities
+# below hold a few compact matches each (lists in attributes, the state is just a count).
+#
+# Entities:
+#   binary_sensor.sports_live           on while a followed singles match is in play
+#   sensor.sports_live_matches          count; attributes matches (max 4), tournaments
+#   sensor.sports_upcoming_today        count left today; attributes matches (max 4), next
+#   sensor.sports_recent_results        count (last 48 h); attributes matches (max 4)
+# All go unavailable when neither ESPN request answered.
+#
+# Which tournaments: Grand Slams (ESPN `major`) plus 1000s and the Finals, matched by name
+# below, per tour, to follow the same events as the Telegram notifier. An empty list for a
+# tour shows every tournament ESPN has for it. Only singles are shown.
+
+rest_command:
+  sports_espn_atp:
+    url: https://site.api.espn.com/apis/site/v2/sports/tennis/atp/scoreboard
+    method: get
+    timeout: 20
+  sports_espn_wta:
+    url: https://site.api.espn.com/apis/site/v2/sports/tennis/wta/scoreboard
+    method: get
+    timeout: 20
+
+template:
+  - triggers:
+      - trigger: time_pattern
+        minutes: /2
+      - trigger: homeassistant
+        event: start
+      - trigger: event
+        event_type: event_template_reloaded
+    actions:
+      # A failed request (timeout, DNS, HTTP error) leaves its response variable undefined
+      # instead of stopping the run; the templates below treat that tour as empty.
+      - action: rest_command.sports_espn_atp
+        response_variable: sports_atp
+        continue_on_error: true
+      - action: rest_command.sports_espn_wta
+        response_variable: sports_wta
+        continue_on_error: true
+      - variables:
+          sports_ok: >-
+            {{ (sports_atp | default({})).content is mapping
+               or (sports_wta | default({})).content is mapping }}
+          # One compact dict per followed singles match:
+          #   tour, event, round, state (pre/in/post), detail (ESPN short status), start (UTC
+          #   ISO), date (local YYYY-MM-DD), time (local "3:00 PM"), tbd (no fixed time),
+          #   a/b (player short names), sa/sb (games per set), ta/tb (tiebreak points, -1 = none),
+          #   wa/wb (set won, per set), w (match winner: 1 = a, 2 = b, 0 = none yet)
+          sports_matches: >-
+            {%- set follow = {
+              'ATP': ['australian open', 'roland garros', 'french open', 'wimbledon', 'us open',
+                      'indian wells', 'bnp paribas', 'miami', 'monte', 'madrid',
+                      'internazionali', 'italia', 'national bank', 'canadian', 'cincinnati',
+                      'shanghai', 'paris', 'atp finals'],
+              'WTA': ['australian open', 'roland garros', 'french open', 'wimbledon', 'us open',
+                      'qatar', 'doha', 'dubai', 'indian wells', 'bnp paribas', 'miami',
+                      'madrid', 'internazionali', 'italia', 'national bank', 'canadian',
+                      'cincinnati', 'china open', 'wuhan', 'wta finals'],
+            } -%}
+            {%- set ns = namespace(out=[]) -%}
+            {%- for tour, resp in [('ATP', sports_atp | default({})),
+                                   ('WTA', sports_wta | default({}))] -%}
+              {%- set content = resp.content if resp is mapping and resp.content is mapping
+                                else {} -%}
+              {%- for e in content.events | default([]) -%}
+                {%- set name = e.name | default('') -%}
+                {%- set keys = follow[tour] -%}
+                {%- if e.major | default(false) or keys | count == 0
+                       or keys | select('in', name | lower) | list | count > 0 -%}
+                  {%- for g in e.groupings | default([]) -%}
+                    {%- if ((g.grouping | default({})).slug | default('')) is search('singles') -%}
+                      {%- for c in g.competitions | default([]) -%}
+                        {%- set ps = c.competitors | default([]) | sort(attribute='order') -%}
+                        {%- set st = (c.status | default({})).type | default({}) -%}
+                        {%- set t = as_datetime(c.date | default(''), none) -%}
+                        {%- if ps | count == 2 and t is not none -%}
+                          {%- set a = ps[0] -%}
+                          {%- set b = ps[1] -%}
+                          {%- set la = a.linescores | default([]) -%}
+                          {%- set lb = b.linescores | default([]) -%}
+                          {%- set ns.out = ns.out + [{
+                            'tour': tour,
+                            'event': e.shortName | default(name),
+                            'round': (c.round | default({})).displayName | default(''),
+                            'state': st.state | default('pre'),
+                            'detail': st.shortDetail | default(''),
+                            'start': t.isoformat(),
+                            'date': as_local(t).date() | string,
+                            'time': as_local(t).strftime('%-I:%M %p'),
+                            'tbd': not (c.timeValid | default(true)),
+                            'a': (a.athlete | default({})).shortName | default('TBD'),
+                            'b': (b.athlete | default({})).shortName | default('TBD'),
+                            'sa': la | map(attribute='value') | map('int') | list,
+                            'sb': lb | map(attribute='value') | map('int') | list,
+                            'ta': la | map(attribute='tiebreak', default=-1) | list,
+                            'tb': lb | map(attribute='tiebreak', default=-1) | list,
+                            'wa': la | map(attribute='winner', default=false) | list,
+                            'wb': lb | map(attribute='winner', default=false) | list,
+                            'w': 1 if a.winner | default(false)
+                                 else 2 if b.winner | default(false) else 0,
+                          }] -%}
+                        {%- endif -%}
+                      {%- endfor -%}
+                    {%- endif -%}
+                  {%- endfor -%}
+                {%- endif -%}
+              {%- endfor -%}
+            {%- endfor -%}
+            {{ ns.out | sort(attribute='start') }}
+    binary_sensor:
+      - name: Sports live
+        unique_id: sports_live
+        icon: mdi:tennis-ball
+        availability: "{{ sports_ok }}"
+        state: "{{ sports_matches | selectattr('state', 'eq', 'in') | list | count > 0 }}"
+    sensor:
+      - name: Sports live matches
+        unique_id: sports_live_matches
+        icon: mdi:tennis
+        availability: "{{ sports_ok }}"
+        state: "{{ sports_matches | selectattr('state', 'eq', 'in') | list | count }}"
+        attributes:
+          matches: "{{ (sports_matches | selectattr('state', 'eq', 'in') | list)[:4] }}"
+          # Followed tournaments in ESPN's feed right now (empty between tournaments).
+          tournaments: "{{ sports_matches | map(attribute='event') | unique | list }}"
+      - name: Sports upcoming today
+        unique_id: sports_upcoming_today
+        icon: mdi:calendar-clock
+        availability: "{{ sports_ok }}"
+        state: >-
+          {{ sports_matches | selectattr('state', 'eq', 'pre')
+             | selectattr('date', 'eq', now().date() | string) | list | count }}
+        attributes:
+          matches: >-
+            {{ (sports_matches | selectattr('state', 'eq', 'pre')
+                | selectattr('date', 'eq', now().date() | string) | list)[:4] }}
+          # First match still to come on any day (for "Next: ..." when today is empty).
+          next: >-
+            {{ (sports_matches | selectattr('state', 'eq', 'pre')
+                | selectattr('start', 'ge', utcnow().isoformat()) | list
+                + [none])[0] }}
+      - name: Sports recent results
+        unique_id: sports_recent_results
+        icon: mdi:trophy
+        availability: "{{ sports_ok }}"
+        state: >-
+          {{ sports_matches | selectattr('state', 'eq', 'post')
+             | selectattr('start', 'ge', (utcnow() - timedelta(hours=48)).isoformat())
+             | list | count }}
+        attributes:
+          matches: >-
+            {{ (sports_matches | selectattr('state', 'eq', 'post')
+                | selectattr('start', 'ge', (utcnow() - timedelta(hours=48)).isoformat())
+                | sort(attribute='start', reverse=true) | list)[:4] }}

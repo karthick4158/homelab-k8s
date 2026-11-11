@@ -18,3 +18,4 @@ configMapGenerator:
       - config/configuration.yaml
       - config/dashboards/kiosk.yaml
       - config/packages/wall_panel.yaml
+      - config/packages/sports.yaml

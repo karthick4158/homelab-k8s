@@ -82,6 +82,10 @@ spec:
               mountPath: /config/packages/wall_panel.yaml
               subPath: wall_panel.yaml
               readOnly: true
+            - name: ha-config
+              mountPath: /config/packages/sports.yaml
+              subPath: sports.yaml
+              readOnly: true
             - name: zigbee
               mountPath: /dev/ttyACM0
       volumes:

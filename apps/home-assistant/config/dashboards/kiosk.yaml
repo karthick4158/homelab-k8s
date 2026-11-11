@@ -983,3 +983,129 @@ views:
             entity: media_player.home_theater
             primary: Denon
             icon: mdi:audio-video
+
+  # ---------------------------------------------------------------- Sports
+  # Tennis singles from ESPN (packages/sports.yaml: Slams, 1000s, Finals; polled every 2 min).
+  # Two sections, both 10 rows:
+  #   Live (column_span 2) = title 2 + live scores 8 (up to 4 matches, big set-by-set table)
+  #   Right column         = Today title 2 + list 3 + Results title 2 + list 3 (4 lines each)
+  # The live card never leaves a hole: with nothing in play it shows "No live matches right
+  # now" plus the next match (or "No followed tournament right now"). Markdown cards use
+  # plain HTML (table/font/b/sup, allowed by HA's markdown card), no card-mod.
+  - title: Sports
+    path: sports
+    icon: mdi:tennis
+    type: sections
+    max_columns: 3
+    sections:
+      - type: grid
+        column_span: 2
+        cards:
+          - type: custom:mushroom-title-card
+            title: Live
+            subtitle: >-
+              {%- set n = states('sensor.sports_live_matches') -%}
+              {%- set ts = state_attr('sensor.sports_live_matches', 'tournaments') or [] -%}
+              {%- if n in ['unavailable', 'unknown'] -%} Scores unavailable
+              {%- elif n | int(0) > 0 -%} {{ n }} in play · {{ ts | join(', ') }}
+              {%- elif ts -%} {{ ts | join(', ') }}
+              {%- else -%} Grand Slams, 1000s and Finals
+              {%- endif -%}
+            grid_options: *title_size
+          - type: markdown
+            text_only: true
+            grid_options:
+              columns: full
+              rows: 8
+            content: >-
+              {%- set s = states('sensor.sports_live_matches') -%}
+              {%- set live = state_attr('sensor.sports_live_matches', 'matches') or [] -%}
+              {%- set nxt = state_attr('sensor.sports_upcoming_today', 'next') -%}
+              {%- set ts = state_attr('sensor.sports_live_matches', 'tournaments') or [] -%}
+              {%- if s in ['unavailable', 'unknown'] -%}
+              <center><br><br><font size="6">Scores unavailable</font><br><br>ESPN did not answer. Trying again every 2 minutes.</center>
+              {%- elif live | count == 0 -%}
+              <center><br><br><font size="6">No live matches right now</font><br><br>
+              {%- if nxt -%}
+              <font size="5">Next: {{ as_timestamp(nxt.start) | timestamp_custom('%a') }} {{ 'TBD' if nxt.tbd else nxt.time }} · {{ nxt.a }} v {{ nxt.b }}</font><br><font color="gray">{{ nxt.tour }} · {{ nxt.event }} · {{ nxt.round }}</font>
+              {%- elif ts -%}
+              <font color="gray">Following {{ ts | join(', ') }}</font>
+              {%- else -%}
+              <font color="gray">No followed tournament right now</font>
+              {%- endif -%}
+              </center>
+              {%- else -%}
+              <table width="100%">
+              {%- for m in live %}
+              <tr><td colspan="6"><font color="gray">{{ m.tour }} · {{ m.event }} · {{ m.round }}{{ ' · ' ~ m.detail if m.detail else '' }}</font></td></tr>
+              {%- for p in [(m.a, m.sa, m.ta, m.wa, m.w == 1), (m.b, m.sb, m.tb, m.wb, m.w == 2)] %}
+              <tr><td width="45%"><font size="5">{{ '<b>' ~ p[0] ~ '</b>' if p[4] else p[0] }}</font></td>
+              {%- for g in p[1] %}<td align="center"><font size="5">{{ '<b>' ~ g ~ '</b>' if p[3][loop.index0] else g }}{{ '<sup>' ~ p[2][loop.index0] ~ '</sup>' if p[2][loop.index0] >= 0 else '' }}</font></td>{% endfor %}</tr>
+              {%- endfor %}
+              {%- endfor %}
+              </table>
+              {%- endif -%}
+
+      - type: grid
+        cards:
+          - type: custom:mushroom-title-card
+            title: Today
+            subtitle: >-
+              {%- set n = states('sensor.sports_upcoming_today') -%}
+              {{ 'Scores unavailable' if n in ['unavailable', 'unknown']
+                 else (n ~ ' still to play') if n | int(0) > 0 else 'Nothing left today' }}
+            grid_options: *title_size
+          - type: markdown
+            text_only: true
+            grid_options: &sports_list_size
+              columns: full
+              rows: 3
+            content: >-
+              {%- set s = states('sensor.sports_upcoming_today') -%}
+              {%- set ms = state_attr('sensor.sports_upcoming_today', 'matches') or [] -%}
+              {%- if s in ['unavailable', 'unknown'] -%}
+              Scores unavailable right now
+              {%- elif ms | count == 0 -%}
+              No more matches today
+              {%- else -%}
+              <table width="100%">
+              {%- for m in ms %}
+              <tr><td>{{ 'TBD' if m.tbd else m.time }}</td><td>{{ m.a }} v {{ m.b }}</td><td align="right"><font color="gray">{{ m.tour }}</font></td></tr>
+              {%- endfor %}
+              {%- if s | int(0) > ms | count %}
+              <tr><td></td><td colspan="2"><font color="gray">+{{ s | int(0) - ms | count }} more</font></td></tr>
+              {%- endif %}
+              </table>
+              {%- endif -%}
+          - type: custom:mushroom-title-card
+            title: Results
+            subtitle: >-
+              {{ 'Scores unavailable' if states('sensor.sports_recent_results')
+                 in ['unavailable', 'unknown'] else 'Last 48 hours' }}
+            grid_options: *title_size
+          - type: markdown
+            text_only: true
+            grid_options: *sports_list_size
+            content: >-
+              {%- set s = states('sensor.sports_recent_results') -%}
+              {%- set ms = state_attr('sensor.sports_recent_results', 'matches') or [] -%}
+              {%- if s in ['unavailable', 'unknown'] -%}
+              Scores unavailable right now
+              {%- elif ms | count == 0 -%}
+              No results in the last 48 hours
+              {%- else -%}
+              <table width="100%">
+              {%- for m in ms %}
+              {%- set a_won = m.w != 2 -%}
+              {%- set win = m.a if a_won else m.b -%}
+              {%- set lose = m.b if a_won else m.a -%}
+              {%- set sw = m.sa if a_won else m.sb -%}
+              {%- set sl = m.sb if a_won else m.sa -%}
+              {%- set tl = m.tb if a_won else m.ta %}
+              <tr><td><b>{{ win }}</b> d. {{ lose }}</td><td align="right">
+              {%- if sw | count == 0 %}{{ m.detail }}{% else %}
+              {%- for g in sw %}{{ ' ' if not loop.first else '' }}{{ g }}-{{ sl[loop.index0] if sl | count > loop.index0 else '' }}{{ '(' ~ tl[loop.index0] ~ ')' if tl | count > loop.index0 and tl[loop.index0] >= 0 else '' }}{% endfor %}
+              {%- endif %}</td></tr>
+              {%- endfor %}
+              </table>
+              {%- endif -%}
