@@ -41,7 +41,7 @@ spec:
         # Transmission to create. Needs no network (kustomize puts it after
         # the gluetun sidecar, so it starts once the VPN is up).
         - name: transmission-seed
-          image: lscr.io/linuxserver/transmission:4.1.4-r0-ls368
+          image: lscr.io/linuxserver/transmission:4.1.4-r0-ls369
           command:
             - sh
             - -c
@@ -116,7 +116,7 @@ spec:
               memory: 1Gi
 
         - name: transmission
-          image: lscr.io/linuxserver/transmission:4.1.4-r0-ls368
+          image: lscr.io/linuxserver/transmission:4.1.4-r0-ls369
           env:
             # Same user/group as qBittorrent (see above).
             - name: PUID
