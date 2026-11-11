@@ -9,7 +9,7 @@ spec:
     secretTemplates:
         - name: cricket-telegram
           stringData:
-            bot-token: ENC[AES256_GCM,data:2NZUpncCwZ4GHl//7Yqnu3bng+e9onOsQuShNJqmtpVfyms1/JeWtGpzso45KA==,iv:M3p3Lnzr4HH2I69NDFl3Qs6FbomnJGdhBwv8qfLM0wQ=,tag:5h8yNgJNuRmjqA3G1v5n+A==,type:str]
+            bot-token: ENC[AES256_GCM,data:hwgo4HLFTjXO/dIMuaNrx4lTtaypxYwTPWbNz6yVjU3ij6Y2ha5ABv7g6ZIQwg==,iv:xOpbPr2VGA3dKpJTPpcQ5992zqOlSprB3/22+RdzGu8=,tag:PKwnIuBAxH5cDlG2m3mJNA==,type:str]
             chat-id: ENC[AES256_GCM,data:POVg09loS+PABg==,iv:WdKU/AyJPJUJcvQEpMnhVJMZNRdpsrm9mg20LlIEq+s=,tag:dtet9nxdigpuElpIfig6yw==,type:str]
 sops:
     age:
@@ -23,6 +23,6 @@ sops:
             -----END AGE ENCRYPTED FILE-----
           recipient: age1tmzhe2zxesm02xf06al2hgml6tg5srw5ljr8ag9zm223jdswkgvq945ua9
     encrypted_regex: ^(data|stringData)$
-    lastmodified: "2026-11-01T18:03:38Z"
-    mac: ENC[AES256_GCM,data:xyGmm9N/keehqCNpBhcLVZMK3mk4JlWKGRmEkjd1BcS+ONBRN9QvvFgeH3CR/Eji1TYbSsGrbnjT+FuEalWQBSQ9WSKyoSwVHBy1RAgn6uJx+fsZoO3vpX6FowCDEnYazrf68Ff2Q80G/Y5a4DPtxal5xz9CWI+Hc3mGlI/Zxh4=,iv:XXnTChKcUe8mWqq9znkQSoPigpk2EfK10wMwYMshT5o=,tag:eMsnaf518Z0wVpOFpYyBgQ==,type:str]
+    lastmodified: "2026-11-11T22:58:09Z"
+    mac: ENC[AES256_GCM,data:ZVFQgVc4yc/EDROL6imZ/YAuueYZrtLxw70E5Dc52sPSp93gwK6ExwHF0+hAChcmdHyeoc/69Vs55/jBeJbgPXcxqlNWKgrXOhLQwP3ARB5GjrB/k1OklE3rh/rbO8Esi20l5eMMPY9+ZP5AS78xhGH7tkRK9yFIE/bEYw58Qkw=,iv:PIwRx5g2Q9rAbNSHz/KKgi7DH60itm5LBc+iLJjFiq4=,tag:o7D3R2ps7XY/nWNNMUqdgA==,type:str]
     version: 3.13.3
