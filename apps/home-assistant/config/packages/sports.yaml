@@ -21,6 +21,37 @@
 # Which tournaments: Grand Slams (ESPN `major`) plus 1000s and the Finals, matched by name
 # below, per tour, to follow the same events as the Telegram notifier. An empty list for a
 # tour shows every tournament ESPN has for it. Only singles are shown.
+#
+# Cricket (Team India) comes from our own cricket notifier (apps/cricket), not ESPN: its
+# status endpoint serves one small JSON document (~1 KB), so a plain `rest` sensor keeps it as
+# attributes (unlike the tennis feed above). URL is the in-cluster Service; HA runs hostNetwork
+# with dnsPolicy ClusterFirstWithHostNet, so cluster DNS names resolve from it.
+#   sensor.sports_cricket_status        state = the app's one-line summary; attributes live,
+#                                       current, next, last_result, updated (the /status JSON)
+#   binary_sensor.sports_cricket_live   on while India is playing
+#   sensor.sports_cricket_summary       one line for the dashboard; "Cricket status
+#                                       unavailable" while the notifier does not answer
+# The status sensor goes unavailable when the request fails (pod down, restart, DNS); the
+# live sensor follows it and the summary says so.
+
+rest:
+  - resource: http://cricket-status.cricket.svc.cluster.local:8099/status
+    scan_interval: 60
+    timeout: 10
+    sensor:
+      - name: Sports cricket status
+        unique_id: sports_cricket_status
+        icon: mdi:cricket
+        # State is capped at 255 characters; the full data is in the attributes.
+        value_template: >-
+          {{ ((value_json.summary if value_json is defined and value_json is mapping
+               else none) or '') | string | truncate(250, true, '…') }}
+        json_attributes:
+          - updated
+          - live
+          - current
+          - next
+          - last_result
 
 rest_command:
   sports_espn_atp:
@@ -164,3 +195,37 @@ template:
             {{ (sports_matches | selectattr('state', 'eq', 'post')
                 | selectattr('start', 'ge', (utcnow() - timedelta(hours=48)).isoformat())
                 | sort(attribute='start', reverse=true) | list)[:4] }}
+
+  # Cricket: state-based templates over sensor.sports_cricket_status (no polling of their own).
+  - binary_sensor:
+      - name: Sports cricket live
+        unique_id: sports_cricket_live
+        icon: mdi:cricket
+        availability: >-
+          {{ states('sensor.sports_cricket_status') not in ['unavailable', 'unknown'] }}
+        state: "{{ state_attr('sensor.sports_cricket_status', 'live') is true }}"
+    sensor:
+      - name: Sports cricket summary
+        unique_id: sports_cricket_summary
+        icon: mdi:cricket
+        state: >-
+          {%- set e = 'sensor.sports_cricket_status' -%}
+          {%- set s = states(e) -%}
+          {%- set c = state_attr(e, 'current') -%}
+          {%- set n = state_attr(e, 'next') -%}
+          {%- if s in ['unavailable', 'unknown'] -%} Cricket status unavailable
+          {%- elif state_attr(e, 'live') is true and c is mapping -%}
+            {#- "IND 120/3 (14.2) · NZ 180/5 (20) · India need 61 from 34 balls" -#}
+            {%- set ns = namespace(parts=[]) -%}
+            {%- for i in c.innings | default([], true) -%}
+              {%- set ns.parts = ns.parts + [i.team | default('?', true) ~ ' '
+                    ~ i.runs | default(0, true) ~ '/' ~ i.wickets | default(0, true)
+                    ~ (' (' ~ i.overs ~ ')' if i.overs | default('', true) != '' else '')] -%}
+            {%- endfor -%}
+            {%- set st = c.status_text | default('', true) -%}
+            {{ ((ns.parts + ([st] if st else [])) | join(' · ')
+                or c.title | default('India live', true)) | truncate(250, true, '…') }}
+          {%- elif s -%} {{ s }}
+          {%- elif n is mapping -%} Next: {{ n.title | default('', true) }}
+          {%- else -%} No India match scheduled
+          {%- endif -%}

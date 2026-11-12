@@ -1,9 +1,14 @@
 # Cricket notifier: polls Cricinfo and sends Team India alerts to Telegram
-# (github.com/karthick4158/cricket_scores, image built by its GitHub Action).
-# A long-running loop that paces its own polling, so a Deployment rather than
-# a CronJob. Outbound HTTPS only (cricinfo.com, api.telegram.org); no VPN,
-# no Service. /data/state.json remembers sent alerts so restarts never repeat
-# them.
+# (github.com/karthick4158/sports_alerts, formerly cricket_scores; image built
+# by its GitHub Action, the same image apps/tennis runs with SPORT=tennis).
+# Cricket is the app's default mode (SPORT unset). A long-running loop that
+# paces its own polling, so a Deployment rather than a CronJob. Outbound HTTPS
+# (cricinfo.com, api.telegram.org); no VPN. /data/state.json remembers sent
+# alerts so restarts never repeat them.
+# Inbound: a read-only status endpoint (GET /status JSON, GET /healthz) on
+# STATUS_PORT 8099, bound to 0.0.0.0, exposed in-cluster only by the
+# cricket-status ClusterIP Service below. Home Assistant (hostNetwork with
+# dnsPolicy ClusterFirstWithHostNet) reads it for the wall tablet's Sports tab.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -44,7 +49,10 @@ spec:
       containers:
         - name: notifier
           # Pinned to the commit tag pushed by the GitHub Action (sha-<short>).
-          image: ghcr.io/karthick4158/cricket_scores:sha-ce647ac
+          image: ghcr.io/karthick4158/sports_alerts:sha-91d0c60
+          ports:
+            - name: status
+              containerPort: 8099
           envFrom:
             - configMapRef:
                 name: cricket-notifier-env  # generated in kustomization.yaml
@@ -99,3 +107,21 @@ spec:
         - name: tmp
           emptyDir:
             sizeLimit: 64Mi
+---
+# In-cluster only (no NodePort, no HTTPRoute): Home Assistant polls
+# http://cricket-status.cricket.svc.cluster.local:8099/status every 60 s.
+apiVersion: v1
+kind: Service
+metadata:
+  name: cricket-status
+  namespace: cricket
+  labels:
+    app: cricket-notifier
+spec:
+  type: ClusterIP
+  selector:
+    app: cricket-notifier
+  ports:
+    - name: status
+      port: 8099
+      targetPort: status

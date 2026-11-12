@@ -985,13 +985,16 @@ views:
             icon: mdi:audio-video
 
   # ---------------------------------------------------------------- Sports
-  # Tennis singles from ESPN (packages/sports.yaml: Slams, 1000s, Finals; polled every 2 min).
-  # Two sections, both 10 rows:
-  #   Live (column_span 2) = title 2 + live scores 8 (up to 4 matches, big set-by-set table)
-  #   Right column         = Today title 2 + list 3 + Results title 2 + list 3 (4 lines each)
-  # The live card never leaves a hole: with nothing in play it shows "No live matches right
-  # now" plus the next match (or "No followed tournament right now"). Markdown cards use
-  # plain HTML (table/font/b/sup, allowed by HA's markdown card), no card-mod.
+  # Tennis singles from ESPN (packages/sports.yaml: Slams, 1000s, Finals; polled every 2 min)
+  # and Team India cricket from our cricket notifier's /status (same package; polled every
+  # 60 s). Three equal columns (no column_span), each exactly 10 rows, mirrored:
+  #   Left   = Tennis live title 2 + live scores 8 (up to 4 matches, set-by-set table)
+  #   Middle = Tennis today title 2 + list 3 + Tennis results title 2 + list 3
+  #   Right  = Cricket title 2 + now 3 + Cricket result title 2 + last result 3
+  # Middle and right have the same 2+3+2+3 shape so the tab reads as two balanced halves
+  # around the live table. No card ever leaves a hole: each has a quiet-state text ("No live
+  # matches right now" + next match, "No India match scheduled", ...) and an unavailable text.
+  # Markdown cards use plain HTML (table/font/b/sup, allowed by HA's markdown card), no card-mod.
   - title: Sports
     path: sports
     icon: mdi:tennis
@@ -999,10 +1002,9 @@ views:
     max_columns: 3
     sections:
       - type: grid
-        column_span: 2
         cards:
           - type: custom:mushroom-title-card
-            title: Live
+            title: Tennis live
             subtitle: >-
               {%- set n = states('sensor.sports_live_matches') -%}
               {%- set ts = state_attr('sensor.sports_live_matches', 'tournaments') or [] -%}
@@ -1023,11 +1025,11 @@ views:
               {%- set nxt = state_attr('sensor.sports_upcoming_today', 'next') -%}
               {%- set ts = state_attr('sensor.sports_live_matches', 'tournaments') or [] -%}
               {%- if s in ['unavailable', 'unknown'] -%}
-              <center><br><br><font size="6">Scores unavailable</font><br><br>ESPN did not answer. Trying again every 2 minutes.</center>
+              <center><br><br><font size="5">Scores unavailable</font><br><br>ESPN did not answer. Trying again every 2 minutes.</center>
               {%- elif live | count == 0 -%}
-              <center><br><br><font size="6">No live matches right now</font><br><br>
+              <center><br><br><font size="5">No live matches right now</font><br><br>
               {%- if nxt -%}
-              <font size="5">Next: {{ as_timestamp(nxt.start) | timestamp_custom('%a') }} {{ 'TBD' if nxt.tbd else nxt.time }} · {{ nxt.a }} v {{ nxt.b }}</font><br><font color="gray">{{ nxt.tour }} · {{ nxt.event }} · {{ nxt.round }}</font>
+              <font size="4">Next: {{ as_timestamp(nxt.start) | timestamp_custom('%a') }} {{ 'TBD' if nxt.tbd else nxt.time }} · {{ nxt.a }} v {{ nxt.b }}</font><br><font color="gray">{{ nxt.tour }} · {{ nxt.event }} · {{ nxt.round }}</font>
               {%- elif ts -%}
               <font color="gray">Following {{ ts | join(', ') }}</font>
               {%- else -%}
@@ -1049,7 +1051,7 @@ views:
       - type: grid
         cards:
           - type: custom:mushroom-title-card
-            title: Today
+            title: Tennis today
             subtitle: >-
               {%- set n = states('sensor.sports_upcoming_today') -%}
               {{ 'Scores unavailable' if n in ['unavailable', 'unknown']
@@ -1078,7 +1080,7 @@ views:
               </table>
               {%- endif -%}
           - type: custom:mushroom-title-card
-            title: Results
+            title: Tennis results
             subtitle: >-
               {{ 'Scores unavailable' if states('sensor.sports_recent_results')
                  in ['unavailable', 'unknown'] else 'Last 48 hours' }}
@@ -1108,4 +1110,73 @@ views:
               {%- endif %}</td></tr>
               {%- endfor %}
               </table>
+              {%- endif -%}
+
+      # Cricket (Team India): sensor.sports_cricket_status, attributes = the /status JSON.
+      - type: grid
+        cards:
+          - type: custom:mushroom-title-card
+            title: Cricket
+            subtitle: >-
+              {%- set e = 'sensor.sports_cricket_status' -%}
+              {%- if states(e) in ['unavailable', 'unknown'] -%} Cricket status unavailable
+              {%- elif is_state('binary_sensor.sports_cricket_live', 'on') -%} India live now
+              {%- elif state_attr(e, 'next') -%} Next India match
+              {%- else -%} India
+              {%- endif -%}
+            grid_options: *title_size
+          - type: markdown
+            text_only: true
+            grid_options: *sports_list_size
+            content: >-
+              {%- set e = 'sensor.sports_cricket_status' -%}
+              {%- set c = state_attr(e, 'current') -%}
+              {%- set n = state_attr(e, 'next') -%}
+              {%- if states(e) in ['unavailable', 'unknown'] -%}
+              <center><font size="5">Cricket status unavailable</font><br><font color="gray">The cricket notifier did not answer. Trying again every minute.</font></center>
+              {%- elif state_attr(e, 'live') is true and c is mapping -%}
+              {%- set inn = c.innings | default([], true) -%}
+              {%- set fs = '5' if inn | count <= 2 else '4' -%}
+              <font color="gray">{{ [c.series | default('', true), c.format | default('', true)] | select | join(' · ') or c.title | default('', true) }}</font>
+              {%- for i in inn %}
+              <br><font size="{{ fs }}"><b>{{ i.team | default('?', true) }} {{ i.runs | default(0, true) }}/{{ i.wickets | default(0, true) }}</b>{{ ' (' ~ i.overs ~ ')' if i.overs | default('', true) != '' else '' }}</font>
+              {%- endfor %}
+              {%- if inn | count == 0 %}<br><font size="5">{{ c.title | default('Match starting', true) }}</font>{% endif %}
+              {%- if c.status_text %}<br>{{ c.status_text }}{% endif %}
+              {%- elif n is mapping -%}
+              {%- set loc = n.start_time_local | default('', true) -%}
+              {%- set ist = n.start_time_ist | default('', true) -%}
+              <font size="5">{{ n.teams | default([], true) | join(' v ') or n.title | default('TBD', true) }}</font>
+              <br>{{ loc or 'Time TBD' }}
+              {%- if ist %}<br><font color="gray">{{ ist }}{{ '' if 'IST' in ist else ' IST' }}</font>{% endif %}
+              <br><font color="gray">{{ n.series | default(n.title, true) | default('', true) }}</font>
+              {%- else -%}
+              <center><font size="5">No India match scheduled</font></center>
+              {%- endif -%}
+          - type: custom:mushroom-title-card
+            title: Cricket result
+            subtitle: >-
+              {%- set e = 'sensor.sports_cricket_status' -%}
+              {%- set r = state_attr(e, 'last_result') -%}
+              {{ 'Cricket status unavailable' if states(e) in ['unavailable', 'unknown']
+                 else (r.series | default('Last India match', true)) if r is mapping
+                 else 'Last India match' }}
+            grid_options: *title_size
+          - type: markdown
+            text_only: true
+            grid_options: *sports_list_size
+            content: >-
+              {%- set e = 'sensor.sports_cricket_status' -%}
+              {%- set r = state_attr(e, 'last_result') -%}
+              {%- if states(e) in ['unavailable', 'unknown'] -%}
+              Cricket status unavailable
+              {%- elif r is not mapping -%}
+              No recent India result
+              {%- else -%}
+              {%- set sc = r.scores | default([], true) -%}
+              <font color="gray">{{ r.teams | default([], true) | join(' v ') or r.title | default('', true) }}</font>
+              {%- for line in sc %}
+              <br><font size="{{ '4' if sc | count <= 2 else '3' }}">{{ line }}</font>
+              {%- endfor %}
+              {%- if r.status_text %}<br><b>{{ r.status_text }}</b>{% endif %}
               {%- endif -%}

@@ -13,7 +13,7 @@ resources:
 
 configMapGenerator:
   # Non-secret settings for the notifier; anything unset uses the app's
-  # default (see .env.example in github.com/karthick4158/cricket_scores).
+  # default (see .env.example in github.com/karthick4158/sports_alerts).
   - name: cricket-notifier-env
     literals:
       - TZ=America/Chicago
