@@ -1,0 +1,47 @@
+# Bazarr (subtitles for Radarr/Sonarr), reached via traefik-gateway at
+# bazarr.homelab.lan (http and https). Its container runs in the shared VPN pod
+# (downloads.yaml); this file holds its config volume, Service and route.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: bazarr-config
+  namespace: media
+spec:
+  accessModes: [ReadWriteOnce]
+  # No storageClassName: uses the default (local-path).
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bazarr
+  namespace: media
+spec:
+  selector:
+    app: downloads  # the shared pod in downloads.yaml
+  ports:
+    - name: http
+      port: 6767
+      targetPort: bazarr  # this app's container port
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: bazarr
+  namespace: media
+spec:
+  parentRefs:
+    - name: traefik-gateway
+      namespace: traefik
+      sectionName: web
+    - name: traefik-gateway
+      namespace: traefik
+      sectionName: websecure
+  hostnames:
+    - bazarr.homelab.lan
+  rules:
+    - backendRefs:
+        - name: bazarr
+          port: 6767

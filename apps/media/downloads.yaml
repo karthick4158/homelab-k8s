@@ -1,4 +1,4 @@
-# qBittorrent, Transmission, Radarr, Sonarr and Seerr in one pod, so they all
+# qBittorrent, Transmission, Radarr, Sonarr, Bazarr and Seerr in one pod, so they all
 # share the gluetun VPN sidecar (components/gluetun): one VPN connection, one
 # kill switch. Each app keeps its own config volume, Service and hostname (see
 # qbittorrent.yaml, transmission.yaml, radarr.yaml, sonarr.yaml, seerr.yaml);
@@ -280,6 +280,49 @@ spec:
             limits:
               memory: 512Mi
 
+        # Subtitles for Radarr/Sonarr (reached on localhost:7878 /
+        # localhost:8989). Same /data mount as Radarr/Sonarr, so their paths
+        # match and no path mappings are needed; writes .srt files next to the
+        # media. TCP probes like Transmission.
+        - name: bazarr
+          image: lscr.io/linuxserver/bazarr:v1.6.2-ls372
+          env:
+            # Same user/group as the other apps (see above).
+            - name: PUID
+              value: "1000"
+            - name: PGID
+              value: "100"
+            - name: UMASK
+              value: "002"
+          ports:
+            - name: bazarr
+              containerPort: 6767
+          volumeMounts:
+            - name: bazarr-config
+              mountPath: /config
+            - name: library
+              mountPath: /data
+          readinessProbe:
+            tcpSocket:
+              port: bazarr
+          startupProbe:
+            tcpSocket:
+              port: bazarr
+            periodSeconds: 10
+            failureThreshold: 30
+          livenessProbe:
+            tcpSocket:
+              port: bazarr
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              memory: 512Mi
+
         # Syncs quality profiles and custom formats to Radarr/Sonarr (reached
         # on localhost:7878 / localhost:8989). Profilarr v2 (full rewrite; v1 is
         # unmaintained). Takes PUID/PGID/UMASK like the arr containers above.
@@ -442,6 +485,9 @@ spec:
         - name: profilarr-data
           persistentVolumeClaim:
             claimName: profilarr-data    # profilarr.yaml
+        - name: bazarr-config
+          persistentVolumeClaim:
+            claimName: bazarr-config     # bazarr.yaml
 ---
 # Gluetun's control server, for the Homepage widget (public IP / country).
 apiVersion: v1

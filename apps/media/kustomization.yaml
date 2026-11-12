@@ -17,6 +17,7 @@ resources:
   - transmission.yaml
   - prowlarr.yaml
   - profilarr.yaml
+  - bazarr.yaml
   - radarr.yaml
   - sonarr.yaml
   - seerr.yaml
@@ -34,9 +35,9 @@ configMapGenerator:
   - name: gluetun-app
     literals:
       # Web UIs reached through Traefik: qBittorrent 8080, Radarr 7878,
-      # Sonarr 8989, Seerr 5055, Transmission 9091, Prowlarr 9696, Profilarr 6868. 9999 for kubelet probes
+      # Sonarr 8989, Seerr 5055, Transmission 9091, Prowlarr 9696, Profilarr 6868, Bazarr 6767. 9999 for kubelet probes
       # on gluetun, 8000 for gluetun's control server (Homepage widget).
-      - FIREWALL_INPUT_PORTS=8080,7878,8989,5055,9091,9696,9999,8000,6868
+      - FIREWALL_INPUT_PORTS=8080,7878,8989,5055,9091,9696,9999,8000,6868,6767
   # Script for the mkv-rename CronJob (mkv-rename.yaml), versioned in Git.
   - name: mkv-rename-script
     files:

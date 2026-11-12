@@ -175,7 +175,7 @@ kubeadm init --pod-network-cidr=10.244.0.0/16 \
 
 ## Media downloads (VPN)
 
-- `apps/media/downloads.yaml`: one pod with qBittorrent, Transmission, Radarr, Sonarr and Seerr
+- `apps/media/downloads.yaml`: one pod with qBittorrent, Transmission, Radarr, Sonarr, Bazarr and Seerr
   behind one gluetun VPN sidecar (`components/gluetun`). Each app has its own config PVC, Service
   and HTTPRoute in its own file. Web UI ports must be listed in `FIREWALL_INPUT_PORTS`
   (`apps/media/kustomization.yaml`, now `8080,7878,8989,5055,9091,9999`).
@@ -234,6 +234,15 @@ kubeadm init --pod-network-cidr=10.244.0.0/16 \
   with v2, hence the new PVC.
 - Cleanup: the old v1 PVC `profilarr-config` is left behind. Once the pod runs on the new one,
   delete it with `kubectl -n media delete pvc profilarr-config`.
+
+### Bazarr
+
+- https://bazarr.homelab.lan (`apps/media/bazarr.yaml`), subtitles for Radarr/Sonarr. Image
+  `lscr.io/linuxserver/bazarr:v1.6.2-ls372`, web UI on 6767 (listed in `FIREWALL_INPUT_PORTS`),
+  config on the 1Gi local-path PVC `bazarr-config`, library at `/data` like Radarr/Sonarr (so no
+  path mappings). First run: Settings > Sonarr / Radarr: host `localhost`, ports `8989` / `7878`
+  with their API keys; Settings > Providers (e.g. OpenSubtitles accounts); Settings > Languages:
+  create a languages profile and set it as default for series and movies.
 
 ### Rename and move job (mkv-rename)
 
