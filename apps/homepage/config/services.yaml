@@ -70,12 +70,6 @@
           type: sonarr
           url: http://sonarr.media.svc.cluster.local:8989
           key: "{{HOMEPAGE_VAR_SONARR_KEY}}"
-    - Bazarr:
-        icon: mdi-subtitles
-        href: https://bazarr.homelab.lan
-        description: Subtitles
-        namespace: media
-        podSelector: app=downloads
     - Prowlarr:
         icon: mdi-radar
         href: https://prowlarr.homelab.lan

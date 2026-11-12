@@ -23,6 +23,10 @@
         - abbr: PRF
           icon: mdi-movie
           href: https://profilarr.homelab.lan
+    - Bazarr:
+        - abbr: BZR
+          icon: mdi-subtitles
+          href: https://bazarr.homelab.lan
     - FileBrowser:
         - abbr: FB
           icon: mdi-folder
