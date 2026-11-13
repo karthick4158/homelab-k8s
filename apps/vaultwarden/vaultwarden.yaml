@@ -43,7 +43,7 @@ spec:
             # wait for Argo to roll the pod, register at the URL above, then set "false"
             # again, commit and push. Only the Git value counts (Argo reverts kubectl edits).
             - name: SIGNUPS_ALLOWED
-              value: "false"
+              value: "true"
             # ADMIN_TOKEN is deliberately not set, so the /admin page is disabled.
             - name: TZ
               value: America/Chicago
