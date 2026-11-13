@@ -372,7 +372,7 @@ spec:
               memory: 768Mi
 
         - name: seerr
-          image: ghcr.io/seerr-team/seerr:v3.5.1
+          image: ghcr.io/seerr-team/seerr:v3.5.2
           ports:
             - name: seerr
               containerPort: 5055
