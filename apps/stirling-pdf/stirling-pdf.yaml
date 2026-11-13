@@ -40,10 +40,10 @@ spec:
             timeoutSeconds: 10
           resources:
             requests:
-              cpu: 50m
-              memory: 256Mi
-            limits:
+              cpu: 100m
               memory: 512Mi
+            limits:
+              memory: 1Gi  # 512Mi was too tight: pod sat at 510Mi and failed its startup probe
           securityContext:
             allowPrivilegeEscalation: false
 ---
