@@ -10,25 +10,31 @@ target: _blank
 
 layout:
   Infrastructure:
+    tab: Infrastructure
     style: row
     columns: 3
     icon: mdi-kubernetes
   Media:
+    tab: Media
     style: row
     columns: 3
     icon: mdi-play-circle
   Downloads:
+    tab: Downloads
     style: row
     columns: 3
     icon: mdi-download
   Tools:
+    tab: Tools
     style: row
     columns: 4
   Network:
+    tab: Network
     style: row
     columns: 3
     icon: mdi-lan
   Home:
+    tab: Home
     style: row
     columns: 3
     icon: mdi-home-assistant
