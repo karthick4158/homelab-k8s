@@ -1,0 +1,106 @@
+# Vaultwarden (Bitwarden-compatible password manager) at vaultwarden.homelab.lan.
+# Data (SQLite DB, attachments, keys) lives in the vaultwarden-data PVC at /data.
+# Backup: scripts/backup-vaultwarden.sh, restore: docs/restore-vaultwarden.md.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: vaultwarden-data
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vaultwarden
+  labels:
+    app: vaultwarden
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate  # RWO volume, SQLite must not be opened by two pods
+  selector:
+    matchLabels:
+      app: vaultwarden
+  template:
+    metadata:
+      labels:
+        app: vaultwarden
+    spec:
+      containers:
+        - name: vaultwarden
+          image: vaultwarden/server:1.37.5
+          ports:
+            - name: http
+              containerPort: 80
+          env:
+            - name: DOMAIN
+              value: https://vaultwarden.homelab.lan
+            # New accounts are blocked. For K's first account: set "true", commit, push,
+            # wait for Argo to roll the pod, register at the URL above, then set "false"
+            # again, commit and push. Only the Git value counts (Argo reverts kubectl edits).
+            - name: SIGNUPS_ALLOWED
+              value: "false"
+            # ADMIN_TOKEN is deliberately not set, so the /admin page is disabled.
+            - name: TZ
+              value: America/Chicago
+          readinessProbe:
+            httpGet:
+              path: /alive
+              port: http
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /alive
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 20m
+              memory: 64Mi
+            limits:
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: vaultwarden-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vaultwarden
+spec:
+  selector:
+    app: vaultwarden
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: vaultwarden
+spec:
+  parentRefs:
+    - name: traefik-gateway
+      namespace: traefik
+      sectionName: web
+    - name: traefik-gateway
+      namespace: traefik
+      sectionName: websecure
+  hostnames:
+    - vaultwarden.homelab.lan
+  rules:
+    - backendRefs:
+        - name: vaultwarden
+          port: 80

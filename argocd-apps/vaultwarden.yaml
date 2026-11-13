@@ -1,0 +1,19 @@
+# Vaultwarden (password manager) at vaultwarden.homelab.lan (apps/vaultwarden).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: vaultwarden
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:karthick4158/homelab-k8s.git
+    targetRevision: main
+    path: apps/vaultwarden
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: vaultwarden
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

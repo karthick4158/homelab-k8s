@@ -278,6 +278,16 @@ kubeadm init --pod-network-cidr=10.244.0.0/16 \
   `argocd-apps/stirling-pdf.yaml`, card in the Homepage "Tools" group). Memory limit 512Mi; raise
   it if large PDFs or OCR get the pod OOM-killed.
 
+## Vaultwarden
+
+- Password manager at https://vaultwarden.homelab.lan (`vaultwarden/server`, `apps/vaultwarden/`,
+  Argo app `argocd-apps/vaultwarden.yaml`, card in the Homepage "Tools" group). One replica,
+  `Recreate`, data in the `vaultwarden-data` PVC (2Gi, local-path) at `/data`.
+- `SIGNUPS_ALLOWED=false`; to create an account, flip it to `"true"` in Git, register, flip it
+  back (comment in the manifest). `ADMIN_TOKEN` is not set, so the `/admin` page is disabled.
+- Backup: `scripts/backup-vaultwarden.sh` (age-encrypted, newest 3 in `backups/vaultwarden/`);
+  restore: `docs/restore-vaultwarden.md`.
+
 ## ESPHome
 
 - Dashboard at esphome.homelab.lan (`apps/esphome/`, Argo app `argocd-apps/esphome.yaml`, card in

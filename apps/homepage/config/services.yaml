@@ -185,6 +185,12 @@
         description: PDF tools
         namespace: tools
         podSelector: app=stirling-pdf
+    - Vaultwarden:
+        icon: vaultwarden
+        href: https://vaultwarden.homelab.lan
+        description: Passwords
+        namespace: vaultwarden
+        podSelector: app=vaultwarden
 
 - Network:
     - Pi-hole:
