@@ -9,6 +9,10 @@ hideVersion: true
 target: _blank
 
 layout:
+  Infrastructure:
+    style: row
+    columns: 3
+    icon: mdi-kubernetes
   Media:
     style: row
     columns: 3
@@ -17,10 +21,6 @@ layout:
     style: row
     columns: 3
     icon: mdi-download
-  Infrastructure:
-    style: row
-    columns: 3
-    icon: mdi-kubernetes
   Tools:
     style: row
     columns: 4
