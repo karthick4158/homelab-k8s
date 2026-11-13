@@ -267,12 +267,16 @@ kubeadm init --pod-network-cidr=10.244.0.0/16 \
 - Alternative: Radarr/Sonarr can rename on import themselves (Settings > Media Management >
   Rename Movies/Episodes), which makes this job unnecessary for anything they download.
 
-## Tools (Omni Tools, IT-Tools)
+## Tools (Omni Tools, IT-Tools, Stirling-PDF)
 
 - Two stateless browser tool sites, each in its own namespace with one replica, no storage and no
   login: Omni Tools (`iib0011/omni-tools`) at omni-tools.homelab.lan and IT-Tools
   (`corentinth/it-tools`) at it-tools.homelab.lan. Manifests in `apps/omni-tools/` and
   `apps/it-tools/`, Argo apps in `argocd-apps/`, cards in the Homepage "Tools" group.
+- Stirling-PDF (`stirlingtools/stirling-pdf`) at stirling-pdf.homelab.lan: PDF tools, stateless,
+  no login, one replica in the `tools` namespace (`apps/stirling-pdf/`, Argo app
+  `argocd-apps/stirling-pdf.yaml`, card in the Homepage "Tools" group). Memory limit 512Mi; raise
+  it if large PDFs or OCR get the pod OOM-killed.
 
 ## ESPHome
 

@@ -179,6 +179,12 @@
         description: Developer utilities
         namespace: it-tools
         podSelector: app=it-tools
+    - Stirling-PDF:
+        icon: stirling-pdf
+        href: https://stirling-pdf.homelab.lan
+        description: PDF tools
+        namespace: tools
+        podSelector: app=stirling-pdf
 
 - Network:
     - Pi-hole:
