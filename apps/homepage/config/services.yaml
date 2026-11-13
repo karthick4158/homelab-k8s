@@ -3,6 +3,63 @@
 # Secrets are {{HOMEPAGE_VAR_*}} from the homepage-keys Secret.
 # namespace + podSelector add a pod status dot (rbac.yaml grants pod reads).
 
+- Infrastructure:
+    - Argo CD:
+        icon: si-argo
+        href: https://argocd.homelab.lan
+        description: GitOps
+        widget:
+          type: argocd
+          url: http://argocd-server.argocd.svc.cluster.local
+          key: "{{HOMEPAGE_VAR_ARGOCD_TOKEN}}"
+          fields: [apps, synced, outOfSync, degraded]
+    - Grafana:
+        icon: si-grafana
+        href: https://grafana.homelab.lan
+        description: Dashboards
+        namespace: monitoring
+        podSelector: app.kubernetes.io/name=grafana
+        widget:
+          type: grafana
+          url: http://monitoring-grafana.monitoring.svc.cluster.local
+          username: "{{HOMEPAGE_VAR_GRAFANA_USER}}"
+          password: "{{HOMEPAGE_VAR_GRAFANA_PASS}}"
+    - Prometheus:
+        icon: si-prometheus
+        description: Metrics (no UI route)
+        namespace: monitoring
+        podSelector: app.kubernetes.io/name=prometheus
+        widget:
+          type: prometheus
+          url: http://monitoring-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090
+    - Proxmox:
+        icon: si-proxmox
+        href: https://10.0.0.66:8006
+        description: Hypervisor
+        widget:
+          type: proxmox
+          url: https://10.0.0.66:8006
+          username: "{{HOMEPAGE_VAR_PROXMOX_TOKEN_ID}}"
+          password: "{{HOMEPAGE_VAR_PROXMOX_TOKEN_SECRET}}"
+
+    - OpenMediaVault:
+        icon: mdi-nas
+        href: http://10.0.0.65
+        description: NAS
+        widget:
+          type: openmediavault
+          url: http://10.0.0.65
+          username: "{{HOMEPAGE_VAR_OMV_USER}}"
+          password: "{{HOMEPAGE_VAR_OMV_PASS}}"
+          method: services.getStatus
+
+    - Dozzle:
+        icon: dozzle
+        href: https://dozzle.homelab.lan
+        description: Live logs
+        namespace: dozzle
+        podSelector: app=dozzle
+        
 - Media:
     - Plex:
         icon: si-plex
@@ -80,12 +137,6 @@
           type: prowlarr
           url: http://prowlarr.media.svc.cluster.local:9696
           key: "{{HOMEPAGE_VAR_PROWLARR_KEY}}"
-    # - Profilarr:
-    #     icon: mdi-tune
-    #     href: https://profilarr.homelab.lan
-    #     description: Quality profiles
-    #     namespace: media
-    #     podSelector: app=downloads
     - qBittorrent:
         icon: si-qbittorrent
         href: https://qbit.homelab.lan
@@ -109,62 +160,7 @@
           username: "{{HOMEPAGE_VAR_TRANSMISSION_USER}}"
           password: "{{HOMEPAGE_VAR_TRANSMISSION_PASS}}"
 
-- Infrastructure:
-    - Argo CD:
-        icon: si-argo
-        href: https://argocd.homelab.lan
-        description: GitOps
-        widget:
-          type: argocd
-          url: http://argocd-server.argocd.svc.cluster.local
-          key: "{{HOMEPAGE_VAR_ARGOCD_TOKEN}}"
-          fields: [apps, synced, outOfSync, degraded]
-    - Grafana:
-        icon: si-grafana
-        href: https://grafana.homelab.lan
-        description: Dashboards
-        namespace: monitoring
-        podSelector: app.kubernetes.io/name=grafana
-        widget:
-          type: grafana
-          url: http://monitoring-grafana.monitoring.svc.cluster.local
-          username: "{{HOMEPAGE_VAR_GRAFANA_USER}}"
-          password: "{{HOMEPAGE_VAR_GRAFANA_PASS}}"
-    - Prometheus:
-        icon: si-prometheus
-        description: Metrics (no UI route)
-        namespace: monitoring
-        podSelector: app.kubernetes.io/name=prometheus
-        widget:
-          type: prometheus
-          url: http://monitoring-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090
-    - Proxmox:
-        icon: si-proxmox
-        href: https://10.0.0.66:8006
-        description: Hypervisor
-        widget:
-          type: proxmox
-          url: https://10.0.0.66:8006
-          username: "{{HOMEPAGE_VAR_PROXMOX_TOKEN_ID}}"
-          password: "{{HOMEPAGE_VAR_PROXMOX_TOKEN_SECRET}}"
 
-    - OpenMediaVault:
-        icon: mdi-nas
-        href: http://10.0.0.65
-        description: NAS
-        widget:
-          type: openmediavault
-          url: http://10.0.0.65
-          username: "{{HOMEPAGE_VAR_OMV_USER}}"
-          password: "{{HOMEPAGE_VAR_OMV_PASS}}"
-          method: services.getStatus
-
-    - Dozzle:
-        icon: dozzle
-        href: https://dozzle.homelab.lan
-        description: Live logs
-        namespace: dozzle
-        podSelector: app=dozzle
 
 - Tools:
     - Omni Tools:
