@@ -1,11 +1,29 @@
 # Text helpers for the LilyGo T5 4.7" e-paper display (ESPHome device "epaper-display").
 # Display only: nothing in here sends notifications. Git-managed and mounted read-only.
-# The device can only read entity states/attributes, so the formatting happens here:
-#   sensor.epaper_weather   state = "Partly cloudy"; attribute forecast =
-#                           "Mon 72°/55° Sunny   Tue 68°/50° Rain   Wed 70°/52° Cloudy"
-#   sensor.epaper_tennis    state = live match count; attribute text = up to 4 lines,
-#                           newline-separated (live scores, then today's matches, then results)
-# Cricket needs nothing new: the display reads sensor.sports_cricket_summary (sports.yaml).
+# The device can only read entity states/attributes as text, so everything is pre-formatted
+# here as simple "|"-separated lines that the display's lambda splits and draws:
+#   sensor.epaper_weather   state = "Partly cloudy"
+#       forecast: "Mon|sunny|58|43" per day (3 days, condition = HA weather condition key)
+#       wind:     "8 mph"
+#   sensor.epaper_tennis    state = live match count
+#       title:    followed tournaments, e.g. "ATP Finals · WTA Finals"
+#       text:     up to 3 matches, "kind|label|player A|player B|A sets|B sets|winner"
+#                 kind L = live, U = upcoming today, R = result; sets "6,3"; winner 0/1/2.
+#                 Or a single "N|message" line when there is nothing to show.
+#       hourly:   next 12 hours, "3 PM|57|20" = hour|temperature|precipitation
+#       precip_unit: "%" (chance) or the provider's amount unit (e.g. "mm") when it has no chance
+#       sun:      "6:42 AM|4:31 PM" (next sunrise|next sunset)
+#   sensor.epaper_cricket   state = live / next / none / unavailable
+#       text:     styled lines "B|big", "N|normal", "G|grey small"
+#   sensor.epaper_news      state = headline count; text = up to 6 headlines, one per line
+# Inputs: weather.home, sun.sun, sports.yaml (tennis sensors, sensor.sports_cricket_status),
+# NPR top stories RSS (rest_command below, every 30 minutes).
+
+rest_command:
+  epaper_news:
+    url: https://feeds.npr.org/1001/rss.xml
+    method: get
+    timeout: 20
 
 template:
   # Weather: refreshes when weather.home changes and every 30 minutes (forecast service call).
@@ -26,6 +44,13 @@ template:
           type: daily
         response_variable: epaper_fc
         continue_on_error: true
+      - action: weather.get_forecasts
+        target:
+          entity_id: weather.home
+        data:
+          type: hourly
+        response_variable: epaper_hourly
+        continue_on_error: true
     sensor:
       - name: Epaper weather
         unique_id: epaper_weather
@@ -41,63 +66,172 @@ template:
           {{ names.get(c, c | replace('-', ' ') | capitalize) }}
         attributes:
           forecast: >-
-            {%- set names = {'clear-night': 'Clear', 'cloudy': 'Cloudy', 'exceptional': 'Warning',
-                'fog': 'Fog', 'hail': 'Hail', 'lightning': 'Thunder',
-                'lightning-rainy': 'Storms', 'partlycloudy': 'Partly cloudy',
-                'pouring': 'Heavy rain', 'rainy': 'Rain', 'snowy': 'Snow',
-                'snowy-rainy': 'Sleet', 'sunny': 'Sunny', 'windy': 'Windy',
-                'windy-variant': 'Windy'} -%}
             {%- set r = epaper_fc | default({}) -%}
             {%- set days = (r['weather.home'] | default({})).forecast | default([])
                 if r is mapping else [] -%}
             {%- set ns = namespace(out=[]) -%}
             {%- for d in days[:3] -%}
-              {%- set c = d.condition | default('') -%}
               {%- set ns.out = ns.out + [
                     (as_timestamp(d.datetime) | timestamp_custom('%a'))
-                    ~ ' ' ~ (d.temperature | default(0) | round(0) | int) ~ '°'
-                    ~ ('/' ~ (d.templow | round(0) | int) ~ '°' if d.templow is defined else '')
-                    ~ ' ' ~ names.get(c, c | replace('-', ' ') | capitalize)] -%}
+                    ~ '|' ~ d.condition | default('')
+                    ~ '|' ~ (d.temperature | default(0) | round(0) | int)
+                    ~ '|' ~ (d.templow | round(0) | int if d.templow is defined else '')] -%}
             {%- endfor -%}
-            {{ ns.out | join('   ') if ns.out else 'Forecast unavailable' }}
+            {{ ns.out | join('\n') }}
+          hourly: >-
+            {%- set r = epaper_hourly | default({}) -%}
+            {%- set hours = (r['weather.home'] | default({})).forecast | default([])
+                if r is mapping else [] -%}
+            {%- set pct = (hours[:1] | selectattr('precipitation_probability', 'defined')
+                           | list | count) > 0 -%}
+            {%- set ns = namespace(out=[]) -%}
+            {%- for h in hours[:12] -%}
+              {%- set p = h.precipitation_probability | default(0, true) if pct
+                          else h.precipitation | default(0, true) -%}
+              {%- set ns.out = ns.out + [
+                    (as_timestamp(h.datetime) | timestamp_custom('%-I %p'))
+                    ~ '|' ~ (h.temperature | default(0) | round(0) | int)
+                    ~ '|' ~ ((p | round(0) | int) if pct else (p | round(1)))] -%}
+            {%- endfor -%}
+            {{ ns.out | join('\n') }}
+          precip_unit: >-
+            {%- set r = epaper_hourly | default({}) -%}
+            {%- set hours = (r['weather.home'] | default({})).forecast | default([])
+                if r is mapping else [] -%}
+            {%- if (hours[:1] | selectattr('precipitation_probability', 'defined')
+                    | list | count) > 0 -%} %
+            {%- else -%} {{ state_attr('weather.home', 'precipitation_unit') or 'mm' }}
+            {%- endif -%}
+          sun: >-
+            {%- set up = state_attr('sun.sun', 'next_rising') -%}
+            {%- set down = state_attr('sun.sun', 'next_setting') -%}
+            {{ (as_timestamp(up) | timestamp_custom('%-I:%M %p') if up else '')
+               ~ '|' ~ (as_timestamp(down) | timestamp_custom('%-I:%M %p') if down else '') }}
+          wind: >-
+            {%- set w = state_attr('weather.home', 'wind_speed') -%}
+            {{ (w | round(0) | int) ~ ' ' ~ state_attr('weather.home', 'wind_speed_unit')
+               if w is number else '' }}
 
   # Tennis: re-renders whenever the sports.yaml tennis sensors change (every 2 minutes).
   - sensor:
       - name: Epaper tennis
         unique_id: epaper_tennis
         icon: mdi:tennis
-        # State = live match count (same as sensor.sports_live_matches); the text is the point.
         state: "{{ states('sensor.sports_live_matches') }}"
         attributes:
+          title: >-
+            {{ (state_attr('sensor.sports_live_matches', 'tournaments') or []) | join(' · ') }}
           text: >-
             {%- set ns = namespace(l=[]) -%}
             {%- for m in state_attr('sensor.sports_live_matches', 'matches') or [] -%}
-              {%- set s = namespace(t='') -%}
-              {%- for i in range(m.sa | count) -%}
-                {%- set s.t = s.t ~ ' ' ~ m.sa[i] ~ '-' ~ (m.sb[i] if i < m.sb | count else 0) -%}
-              {%- endfor -%}
-              {%- set ns.l = ns.l + ['LIVE  ' ~ m.a ~ ' v ' ~ m.b ~ s.t] -%}
+              {%- set ns.l = ns.l + ['L|LIVE|' ~ m.a ~ '|' ~ m.b ~ '|' ~ m.sa | join(',')
+                                     ~ '|' ~ m.sb | join(',') ~ '|0'] -%}
             {%- endfor -%}
             {%- for m in state_attr('sensor.sports_upcoming_today', 'matches') or [] -%}
-              {%- set ns.l = ns.l + [('TBD' if m.tbd else m.time) ~ '  ' ~ m.a ~ ' v ' ~ m.b
-                                     ~ '  (' ~ m.event ~ ')'] -%}
+              {%- set ns.l = ns.l + ['U|' ~ ('TBD' if m.tbd else m.time) ~ '|' ~ m.a ~ '|' ~ m.b
+                                     ~ '|||0'] -%}
             {%- endfor -%}
             {%- for m in state_attr('sensor.sports_recent_results', 'matches') or [] -%}
-              {%- set win, lose, ws, ls = (m.b, m.a, m.sb, m.sa) if m.w == 2
-                                          else (m.a, m.b, m.sa, m.sb) -%}
-              {%- set s = namespace(t='') -%}
-              {%- for i in range(ws | count) -%}
-                {%- set s.t = s.t ~ ' ' ~ ws[i] ~ '-' ~ (ls[i] if i < ls | count else 0) -%}
-              {%- endfor -%}
-              {%- set ns.l = ns.l + [win ~ ' d. ' ~ lose ~ s.t] -%}
+              {%- set ns.l = ns.l + ['R|FINAL|' ~ m.a ~ '|' ~ m.b ~ '|' ~ m.sa | join(',')
+                                     ~ '|' ~ m.sb | join(',') ~ '|' ~ m.w] -%}
             {%- endfor -%}
             {%- set nx = state_attr('sensor.sports_upcoming_today', 'next') -%}
-            {%- if not ns.l and nx is mapping -%}
-              {%- set ns.l = ['Next: ' ~ (as_timestamp(nx.start) | timestamp_custom('%a %-I:%M %p'))
-                              ~ '  ' ~ nx.a ~ ' v ' ~ nx.b ~ '  (' ~ nx.event ~ ')'] -%}
-            {%- endif -%}
             {%- if states('sensor.sports_live_matches') in ['unavailable', 'unknown'] -%}
-              Tennis scores unavailable
+              N|Tennis scores unavailable
+            {%- elif ns.l -%}
+              {{ ns.l[:3] | join('\n') }}
+            {%- elif nx is mapping -%}
+              N|Next: {{ as_timestamp(nx.start) | timestamp_custom('%a %-I:%M %p') }}  {{ nx.a }} v {{ nx.b }}
             {%- else -%}
-              {{ (ns.l or ['No followed tennis matches'])[:4] | join('\n') }}
+              N|No followed tennis matches
             {%- endif -%}
+
+  # Cricket (Team India): reformats sensor.sports_cricket_status (the notifier's /status JSON).
+  - sensor:
+      - name: Epaper cricket
+        unique_id: epaper_cricket
+        icon: mdi:cricket
+        state: >-
+          {%- set e = 'sensor.sports_cricket_status' -%}
+          {%- if states(e) in ['unavailable', 'unknown'] -%} unavailable
+          {%- elif state_attr(e, 'live') is true and state_attr(e, 'current') is mapping -%} live
+          {%- elif state_attr(e, 'next') is mapping -%} next
+          {%- else -%} none
+          {%- endif -%}
+        attributes:
+          text: >-
+            {%- set e = 'sensor.sports_cricket_status' -%}
+            {%- set c = state_attr(e, 'current') -%}
+            {%- set n = state_attr(e, 'next') -%}
+            {%- set r = state_attr(e, 'last_result') -%}
+            {%- set ns = namespace(l=[]) -%}
+            {%- if states(e) in ['unavailable', 'unknown'] -%}
+              {%- set ns.l = ['N|Cricket status unavailable'] -%}
+            {%- elif state_attr(e, 'live') is true and c is mapping -%}
+              {%- set head = [c.series | default('', true), c.format | default('', true)]
+                             | select | join(' · ') or c.title | default('', true) -%}
+              {%- if head -%}{%- set ns.l = ns.l + ['G|' ~ head] -%}{%- endif -%}
+              {%- for i in (c.innings | default([], true))[-2:] -%}
+                {%- set ns.l = ns.l + ['B|' ~ i.team | default('?', true) ~ ' '
+                      ~ i.runs | default(0, true) ~ '/' ~ i.wickets | default(0, true)
+                      ~ (' (' ~ i.overs ~ ')' if i.overs | default('', true) != '' else '')] -%}
+              {%- endfor -%}
+              {%- if not c.innings | default([], true) -%}
+                {%- set ns.l = ns.l + ['B|' ~ c.title | default('Match starting', true)] -%}
+              {%- endif -%}
+              {%- if c.status_text | default('', true) -%}
+                {%- set ns.l = ns.l + ['N|' ~ c.status_text] -%}
+              {%- endif -%}
+            {%- else -%}
+              {%- if n is mapping -%}
+                {%- set ns.l = ns.l + ['B|' ~ (n.teams | default([], true) | join(' v ')
+                                              or n.title | default('TBD', true)),
+                                       'N|' ~ n.start_time_local | default('Time TBD', true)] -%}
+                {%- if n.series | default('', true) -%}
+                  {%- set ns.l = ns.l + ['G|' ~ n.series] -%}
+                {%- endif -%}
+              {%- else -%}
+                {%- set ns.l = ns.l + ['N|No India match scheduled'] -%}
+              {%- endif -%}
+              {%- if r is mapping and r.status_text | default('', true) -%}
+                {%- set ns.l = ns.l + ['G|Last: ' ~ r.status_text] -%}
+              {%- endif -%}
+            {%- endif -%}
+            {{ ns.l | join('\n') | replace('\n\n', '\n') }}
+
+  # News: NPR top stories, every 30 minutes. The feed is RSS (XML); the headlines are pulled
+  # out of the <title> tags (the first one is the feed's own name, so it is skipped).
+  - triggers:
+      - trigger: time_pattern
+        minutes: /30
+      - trigger: homeassistant
+        event: start
+      - trigger: event
+        event_type: event_template_reloaded
+    actions:
+      - action: rest_command.epaper_news
+        response_variable: epaper_rss
+        continue_on_error: true
+      - variables:
+          epaper_headlines: >-
+            {%- set body = (epaper_rss | default({})).content | default('') -%}
+            {%- set body = body if body is string else '' -%}
+            {%- set titles = body | regex_findall('<title>\\s*(?:<!\\[CDATA\\[)?(.*?)(?:\\]\\]>)?\\s*</title>') -%}
+            {%- set ns = namespace(out=[]) -%}
+            {%- for t in titles[1:7] -%}
+              {%- set ns.out = ns.out + [t | replace('&amp;', '&') | replace('&quot;', '"')
+                    | replace('&#39;', "'") | replace('&#039;', "'") | replace('&apos;', "'")
+                    | replace('&lt;', '<') | replace('&gt;', '>') | replace('&#8217;', '’')
+                    | replace('&#8216;', '‘') | replace('&#8220;', '“') | replace('&#8221;', '”')
+                    | replace('&#8212;', '—') | replace('&#8211;', '–') | replace('|', '-')
+                    | trim] -%}
+            {%- endfor -%}
+            {{ ns.out }}
+    sensor:
+      - name: Epaper news
+        unique_id: epaper_news
+        icon: mdi:newspaper-variant-outline
+        state: "{{ epaper_headlines | count }}"
+        attributes:
+          text: >-
+            {{ epaper_headlines | join('\n') if epaper_headlines else 'Headlines unavailable' }}
