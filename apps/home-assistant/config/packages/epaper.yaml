@@ -1,0 +1,103 @@
+# Text helpers for the LilyGo T5 4.7" e-paper display (ESPHome device "epaper-display").
+# Display only: nothing in here sends notifications. Git-managed and mounted read-only.
+# The device can only read entity states/attributes, so the formatting happens here:
+#   sensor.epaper_weather   state = "Partly cloudy"; attribute forecast =
+#                           "Mon 72°/55° Sunny   Tue 68°/50° Rain   Wed 70°/52° Cloudy"
+#   sensor.epaper_tennis    state = live match count; attribute text = up to 4 lines,
+#                           newline-separated (live scores, then today's matches, then results)
+# Cricket needs nothing new: the display reads sensor.sports_cricket_summary (sports.yaml).
+
+template:
+  # Weather: refreshes when weather.home changes and every 30 minutes (forecast service call).
+  - triggers:
+      - trigger: state
+        entity_id: weather.home
+      - trigger: time_pattern
+        minutes: /30
+      - trigger: homeassistant
+        event: start
+      - trigger: event
+        event_type: event_template_reloaded
+    actions:
+      - action: weather.get_forecasts
+        target:
+          entity_id: weather.home
+        data:
+          type: daily
+        response_variable: epaper_fc
+        continue_on_error: true
+    sensor:
+      - name: Epaper weather
+        unique_id: epaper_weather
+        icon: mdi:weather-partly-cloudy
+        state: >-
+          {%- set c = states('weather.home') -%}
+          {%- set names = {'clear-night': 'Clear', 'cloudy': 'Cloudy', 'exceptional': 'Warning',
+              'fog': 'Fog', 'hail': 'Hail', 'lightning': 'Thunder',
+              'lightning-rainy': 'Thunderstorms', 'partlycloudy': 'Partly cloudy',
+              'pouring': 'Heavy rain', 'rainy': 'Rain', 'snowy': 'Snow',
+              'snowy-rainy': 'Sleet', 'sunny': 'Sunny', 'windy': 'Windy',
+              'windy-variant': 'Windy'} -%}
+          {{ names.get(c, c | replace('-', ' ') | capitalize) }}
+        attributes:
+          forecast: >-
+            {%- set names = {'clear-night': 'Clear', 'cloudy': 'Cloudy', 'exceptional': 'Warning',
+                'fog': 'Fog', 'hail': 'Hail', 'lightning': 'Thunder',
+                'lightning-rainy': 'Storms', 'partlycloudy': 'Partly cloudy',
+                'pouring': 'Heavy rain', 'rainy': 'Rain', 'snowy': 'Snow',
+                'snowy-rainy': 'Sleet', 'sunny': 'Sunny', 'windy': 'Windy',
+                'windy-variant': 'Windy'} -%}
+            {%- set r = epaper_fc | default({}) -%}
+            {%- set days = (r['weather.home'] | default({})).forecast | default([])
+                if r is mapping else [] -%}
+            {%- set ns = namespace(out=[]) -%}
+            {%- for d in days[:3] -%}
+              {%- set c = d.condition | default('') -%}
+              {%- set ns.out = ns.out + [
+                    (as_timestamp(d.datetime) | timestamp_custom('%a'))
+                    ~ ' ' ~ (d.temperature | default(0) | round(0) | int) ~ '°'
+                    ~ ('/' ~ (d.templow | round(0) | int) ~ '°' if d.templow is defined else '')
+                    ~ ' ' ~ names.get(c, c | replace('-', ' ') | capitalize)] -%}
+            {%- endfor -%}
+            {{ ns.out | join('   ') if ns.out else 'Forecast unavailable' }}
+
+  # Tennis: re-renders whenever the sports.yaml tennis sensors change (every 2 minutes).
+  - sensor:
+      - name: Epaper tennis
+        unique_id: epaper_tennis
+        icon: mdi:tennis
+        # State = live match count (same as sensor.sports_live_matches); the text is the point.
+        state: "{{ states('sensor.sports_live_matches') }}"
+        attributes:
+          text: >-
+            {%- set ns = namespace(l=[]) -%}
+            {%- for m in state_attr('sensor.sports_live_matches', 'matches') or [] -%}
+              {%- set s = namespace(t='') -%}
+              {%- for i in range(m.sa | count) -%}
+                {%- set s.t = s.t ~ ' ' ~ m.sa[i] ~ '-' ~ (m.sb[i] if i < m.sb | count else 0) -%}
+              {%- endfor -%}
+              {%- set ns.l = ns.l + ['LIVE  ' ~ m.a ~ ' v ' ~ m.b ~ s.t] -%}
+            {%- endfor -%}
+            {%- for m in state_attr('sensor.sports_upcoming_today', 'matches') or [] -%}
+              {%- set ns.l = ns.l + [('TBD' if m.tbd else m.time) ~ '  ' ~ m.a ~ ' v ' ~ m.b
+                                     ~ '  (' ~ m.event ~ ')'] -%}
+            {%- endfor -%}
+            {%- for m in state_attr('sensor.sports_recent_results', 'matches') or [] -%}
+              {%- set win, lose, ws, ls = (m.b, m.a, m.sb, m.sa) if m.w == 2
+                                          else (m.a, m.b, m.sa, m.sb) -%}
+              {%- set s = namespace(t='') -%}
+              {%- for i in range(ws | count) -%}
+                {%- set s.t = s.t ~ ' ' ~ ws[i] ~ '-' ~ (ls[i] if i < ls | count else 0) -%}
+              {%- endfor -%}
+              {%- set ns.l = ns.l + [win ~ ' d. ' ~ lose ~ s.t] -%}
+            {%- endfor -%}
+            {%- set nx = state_attr('sensor.sports_upcoming_today', 'next') -%}
+            {%- if not ns.l and nx is mapping -%}
+              {%- set ns.l = ['Next: ' ~ (as_timestamp(nx.start) | timestamp_custom('%a %-I:%M %p'))
+                              ~ '  ' ~ nx.a ~ ' v ' ~ nx.b ~ '  (' ~ nx.event ~ ')'] -%}
+            {%- endif -%}
+            {%- if states('sensor.sports_live_matches') in ['unavailable', 'unknown'] -%}
+              Tennis scores unavailable
+            {%- else -%}
+              {{ (ns.l or ['No followed tennis matches'])[:4] | join('\n') }}
+            {%- endif -%}
