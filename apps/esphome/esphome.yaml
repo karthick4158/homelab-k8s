@@ -46,23 +46,28 @@ spec:
               port: http
             periodSeconds: 10
             failureThreshold: 30  # up to 5 min on first start
+          # The dashboard answers slowly while a firmware build runs (2026-11-16: a build was
+          # cut off), so the checks are patient: liveness only restarts after ~5 minutes.
           readinessProbe:
             httpGet:
               path: /
               port: http
             periodSeconds: 10
+            timeoutSeconds: 10
+            failureThreshold: 6
           livenessProbe:
             httpGet:
               path: /
               port: http
             periodSeconds: 30
-            timeoutSeconds: 5
+            timeoutSeconds: 20
+            failureThreshold: 10
           resources:
             requests:
               cpu: 100m
               memory: 256Mi
             limits:
-              memory: 1Gi  # firmware compiles are heavy
+              memory: 2Gi  # firmware compiles are heavy (e-paper build with fonts/images)
           volumeMounts:
             - name: config
               mountPath: /config
