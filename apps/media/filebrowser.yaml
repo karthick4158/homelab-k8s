@@ -61,6 +61,8 @@ spec:
               mountPath: /database
             - name: library
               mountPath: /srv
+            - name: photos
+              mountPath: /photos
             - name: config
               mountPath: /config
               readOnly: true
@@ -97,6 +99,9 @@ spec:
         - name: library
           persistentVolumeClaim:
             claimName: library  # media-library.yaml
+        - name: photos
+          persistentVolumeClaim:
+            claimName: epaper-photos  # epaper-photo.yaml
         - name: config
           configMap:
             name: filebrowser-config

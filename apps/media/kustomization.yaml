@@ -25,6 +25,8 @@ resources:
   - telegram-notifier.sops.yaml
   # Rename-and-move CronJob; its script is generated below.
   - mkv-rename.yaml
+  # Photo frame for the e-paper display (photos uploaded via FileBrowser).
+  - epaper-photo.yaml
 
 # Gluetun VPN sidecar for Deployments labelled vpn=gluetun (only downloads.yaml);
 # see components/gluetun/README.md.
@@ -46,6 +48,10 @@ configMapGenerator:
   - name: ip-notifier-script
     files:
       - ip-notifier.py
+  # Script for the e-paper photo frame (epaper-photo.yaml).
+  - name: epaper-photo-script
+    files:
+      - epaper-photo.py
   # FileBrowser Quantum config (filebrowser.yaml), mounted at /config.
   - name: filebrowser-config
     files:

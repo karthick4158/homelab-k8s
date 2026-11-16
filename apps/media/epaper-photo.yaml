@@ -1,0 +1,132 @@
+# Photo frame for the e-paper display (ESPHome "epaper-display", full-screen photo page).
+# Photos live on their own small volume, NOT the media library: K uploads them in
+# FileBrowser (https://media.homelab.lan, source "photos"), which mounts the same PVC.
+# epaper-photo.py (configMapGenerator in kustomization.yaml) serves one random photo per
+# request at GET /photo.png, already black and white, 960 x 540, 16 grey levels.
+# Reached by the display on the LAN at http://10.0.0.89:30960/photo.png (NodePort on
+# worker-1; Cilium here ignores hostPort). Plain HTTP, LAN only; read-only access to photos.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: epaper-photos
+  namespace: media
+spec:
+  # RWO is fine: FileBrowser and this pod both run on worker-1 (local-path volume).
+  accessModes: [ReadWriteOnce]
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: epaper-photo
+  namespace: media
+  labels:
+    app: epaper-photo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: epaper-photo
+  template:
+    metadata:
+      labels:
+        app: epaper-photo
+    spec:
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 100
+        runAsNonRoot: true
+      # Pillow (+ HEIC support for iPhone photos) installed into an emptyDir at start,
+      # so no custom image is needed. Versions pinned.
+      initContainers:
+        - name: deps
+          image: python:3.13.18-slim
+          command:
+            - pip
+            - install
+            - --no-cache-dir
+            - --target=/deps
+            - pillow==13.0.0
+            - pillow-heif==1.8.1
+          env:
+            - name: HOME
+              value: /tmp
+          volumeMounts:
+            - name: deps
+              mountPath: /deps
+            - name: tmp
+              mountPath: /tmp
+      containers:
+        - name: photo
+          image: python:3.13.18-slim
+          command: ["python", "/app/epaper-photo.py"]
+          env:
+            - name: PYTHONPATH
+              value: /deps
+            - name: PHOTO_DIR
+              value: /photos
+          ports:
+            - name: http
+              containerPort: 8080
+          volumeMounts:
+            - name: app
+              mountPath: /app
+              readOnly: true
+            - name: deps
+              mountPath: /deps
+              readOnly: true
+            - name: photos
+              mountPath: /photos
+              readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 30
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 60
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              # Decoding a 48 MP iPhone photo needs a few hundred MB for a moment.
+              memory: 768Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+      volumes:
+        - name: app
+          configMap:
+            name: epaper-photo-script
+        - name: deps
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
+        - name: photos
+          persistentVolumeClaim:
+            claimName: epaper-photos
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: epaper-photo
+  namespace: media
+spec:
+  type: NodePort
+  selector:
+    app: epaper-photo
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      nodePort: 30960

@@ -14,6 +14,11 @@ server:
   sources:
     - path: "/srv"
       name: "library"
+    # Photos for the e-paper display's photo page (PVC epaper-photos, epaper-photo.yaml).
+    - path: "/photos"
+      name: "photos"
+      config:
+        defaultEnabled: true
   # New SQLite file on the filebrowser-data PVC. The old FileBrowser
   # filebrowser.db next to it is left untouched and never opened.
   database:
