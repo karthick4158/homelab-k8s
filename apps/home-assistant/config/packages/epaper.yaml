@@ -19,12 +19,28 @@
 #       text:     styled lines "B|big", "N|normal", "G|grey small"
 #       full:     while live, for the full-width cricket panel (empty otherwise):
 #                 "H|series · format", "I|team|runs/wickets|overs|run rate" per innings
-#                 (oldest first, the last one is batting now), "S|status", "G|next match"
+#                 (oldest first, the last one is batting now), "S|status", plus the
+#                 sensor.epaper_cricket_detail lines below while they are fresh (< 10 min)
+#   sensor.epaper_cricket_detail   ESPN's live match feed, every 2 min while India plays:
+#       lines:    "D|Day 1 · Session 1", "A|batter|runs|balls|4s|6s|out 0/1" (2),
+#                 "O|bowler|overs|maidens|runs|wickets" (2, current bowler first),
+#                 "P|partnership", "W|last wicket", "Z|recent balls" (last 2 overs,
+#                 balls space-separated, overs separated by "/": 0 1 4 6 W wd 1nb 4lb 2b)
 #   sensor.epaper_news      state = headline count; text = up to 6 headlines, one per line
 # Inputs: weather.home, sun.sun, sports.yaml (tennis sensors, sensor.sports_cricket_status),
 # NPR top stories RSS (rest_command below, every 30 minutes).
 
 rest_command:
+  # ESPN's public (unofficial, undocumented) cricket feed, the same family as the tennis one in
+  # sports.yaml. Header = every match ESPN covers today (~120 KB); summary = one match (~220 KB).
+  epaper_cricket_header:
+    url: https://site.web.api.espn.com/apis/v2/scoreboard/header?sport=cricket&lang=en&region=us
+    method: get
+    timeout: 20
+  epaper_cricket_summary:
+    url: "https://site.api.espn.com/apis/site/v2/sports/cricket/{{ league }}/summary?event={{ event }}"
+    method: get
+    timeout: 20
   epaper_news:
     url: https://feeds.npr.org/1001/rss.xml
     method: get
@@ -221,7 +237,6 @@ template:
           full: >-
             {%- set e = 'sensor.sports_cricket_status' -%}
             {%- set c = state_attr(e, 'current') -%}
-            {%- set n = state_attr(e, 'next') -%}
             {%- set ns = namespace(l=[]) -%}
             {%- if states(e) not in ['unavailable', 'unknown']
                    and state_attr(e, 'live') is true and c is mapping -%}
@@ -238,14 +253,148 @@ template:
                       ~ '|' ~ runs ~ '/' ~ i.wickets | default(0, true)
                       ~ '|' ~ ov ~ '|' ~ ('%.2f' | format(runs * 6 / balls) if balls > 0 else '')] -%}
               {%- endfor -%}
-              {%- if c.status_text | default('', true) -%}
-                {%- set ns.l = ns.l + ['S|' ~ c.status_text | replace('|', '/')] -%}
+              {#- batters, bowlers etc. from ESPN, only when updated in the last 10 minutes -#}
+              {%- set dt = 'sensor.epaper_cricket_detail' -%}
+              {%- set at = state_attr(dt, 'at') -%}
+              {%- set fresh = at and as_timestamp(now()) - as_timestamp(at, 0) < 600 -%}
+              {%- set st = c.status_text | default('', true) | replace('|', '/') -%}
+              {#- the detail lines carry the day and session, so drop "Day 1 - Session 1: " here -#}
+              {%- set st = st | regex_replace('^Day \\d+\\s*-\\s*Session \\d+:\\s*', '') if fresh else st -%}
+              {%- if st -%}
+                {%- set ns.l = ns.l + ['S|' ~ st] -%}
               {%- endif -%}
-              {%- if n is mapping -%}
-                {%- set ns.l = ns.l + ['G|Next: ' ~ (n.teams | default([], true) | join(' v ')
-                      or n.title | default('TBD', true)) ~ ' · '
-                      ~ n.start_time_local | default('time TBD', true)] -%}
+              {%- if fresh -%}
+                {%- set ns.l = ns.l + (state_attr(dt, 'lines') or '').split('\n') | select | list -%}
               {%- endif -%}
+            {%- endif -%}
+            {{ ns.l | join('\n') }}
+
+  # Cricket details for the full-width panel: batters, bowlers, partnership, last wicket and the
+  # last two overs, from ESPN's live feed. Only while India is live (the notifier says so); the
+  # header lists today's matches, the first live one with India is fetched.
+  - triggers:
+      - trigger: time_pattern
+        minutes: /2
+      - trigger: state
+        entity_id: binary_sensor.sports_cricket_live
+        to: "on"
+    actions:
+      - condition: state
+        entity_id: binary_sensor.sports_cricket_live
+        state: "on"
+      - action: rest_command.epaper_cricket_header
+        response_variable: epaper_hdr
+        continue_on_error: true
+      - variables:
+          epaper_ev: >-
+            {%- set h = (epaper_hdr | default({})).content | default({}) -%}
+            {%- set ns = namespace(ev={}) -%}
+            {%- for sp in (h.sports | default([]) if h is mapping else []) -%}
+              {%- for lg in sp.leagues | default([]) -%}
+                {%- for ev in lg.events | default([]) -%}
+                  {%- if not ns.ev and ev.status | default('') == 'in'
+                         and 'India' in ev.competitors | default([])
+                                        | map(attribute='displayName', default='') | list -%}
+                    {%- set ns.ev = {'league': lg.id, 'event': ev.id} -%}
+                  {%- endif -%}
+                {%- endfor -%}
+              {%- endfor -%}
+            {%- endfor -%}
+            {{ ns.ev }}
+      - action: rest_command.epaper_cricket_summary
+        data:
+          league: "{{ epaper_ev.league | default(0) }}"
+          event: "{{ epaper_ev.event | default(0) }}"
+        response_variable: epaper_sum
+        continue_on_error: true
+    sensor:
+      - name: Epaper cricket detail
+        unique_id: epaper_cricket_detail
+        icon: mdi:cricket
+        state: "{{ epaper_ev.event | default('none') }}"
+        attributes:
+          at: "{{ now().isoformat() }}"
+          lines: >-
+            {%- set d = (epaper_sum | default({})).content | default({}) -%}
+            {%- set d = d if d is mapping else {} -%}
+            {%- set c = (d.header | default({})).competitions | default([]) | first | default({}) -%}
+            {%- set cm = c.commentaries | default([]) -%}
+            {%- set balls = (cm.values() | list if cm is mapping else cm)
+                            | selectattr('sortOrder', 'defined') | sort(attribute='sortOrder', reverse=true) | list -%}
+            {%- set ns = namespace(l=[], ls={}, ov=[], cur=-1, tok=[]) -%}
+            {%- set nm = (c.status | default({})).session | default('') | regex_replace('\\s{2,}', ' · ') | trim -%}
+            {%- if nm -%}{%- set ns.l = ns.l + ['D|' ~ nm] -%}{%- endif -%}
+            {%- if balls -%}
+              {%- set b0 = balls[0] -%}
+              {%- set out_id = ((b0.dismissal | default({})).batsman | default({})).athlete | default({}) -%}
+              {%- for k in ['batsman', 'otherBatsman'] -%}
+                {%- set p = b0[k] | default({}) -%}
+                {%- set a = p.athlete | default({}) -%}
+                {%- if a.displayName is defined -%}
+                  {%- set ns.l = ns.l + ['A|' ~ a.displayName | replace('|', '/') ~ '|' ~ p.totalRuns | default(0)
+                        ~ '|' ~ p.faced | default(0) ~ '|' ~ p.fours | default(0) ~ '|' ~ p.sixes | default(0)
+                        ~ '|' ~ (1 if (b0.dismissal | default({})).dismissal | default(false)
+                                      and out_id.id | default('') == a.id | default('x') else 0)] -%}
+                {%- endif -%}
+              {%- endfor -%}
+              {%- for k in ['bowler', 'otherBowler'] -%}
+                {%- set p = b0[k] | default({}) -%}
+                {%- set a = p.athlete | default({}) -%}
+                {%- if a.displayName is defined -%}
+                  {%- set ns.l = ns.l + ['O|' ~ a.displayName | replace('|', '/') ~ '|'
+                        ~ '%g' | format(p.overs | default(0) | float(0)) ~ '|' ~ p.maidens | default(0)
+                        ~ '|' ~ p.conceded | default(0) ~ '|' ~ p.wickets | default(0)] -%}
+                {%- endif -%}
+              {%- endfor -%}
+            {%- endif -%}
+            {#- the innings being batted now: partnership and last wicket -#}
+            {%- for t in c.competitors | default([]) -%}
+              {%- for i in t.linescores | default([]) -%}
+                {%- if i.isBatting | default(false) and i.isCurrent | default(0) == 1 -%}
+                  {%- set ns.ls = i -%}
+                {%- endif -%}
+              {%- endfor -%}
+            {%- endfor -%}
+            {%- set ps = ns.ls.partnerships | default([]) | last | default({}) -%}
+            {%- if ps.runs is defined -%}
+              {%- set ns.l = ns.l + ['P|' ~ ps.runs ~ ' (' ~ ps.overs | default(0) ~ ' ov)'] -%}
+            {%- endif -%}
+            {%- set fw = ns.ls.fow | default([]) | last | default({}) -%}
+            {%- if fw.wicketNumber is defined -%}
+              {%- set how = namespace(t='') -%}
+              {%- for g in (ns.ls.statistics | default({})).overs | default([]) -%}
+                {%- for o in ([g] if g is mapping else g) -%}
+                  {%- for w in o.wicket | default([]) -%}
+                    {%- if w.number | default(0) == fw.wicketNumber -%}
+                      {%- set how.t = w.shortText | default('') | replace('&dagger;', '') | replace('&amp;', '&') | trim -%}
+                    {%- endif -%}
+                  {%- endfor -%}
+                {%- endfor -%}
+              {%- endfor -%}
+              {%- set ns.l = ns.l + ['W|' ~ ((fw.athlete | default({})).displayName | default('?'))
+                    ~ ' ' ~ fw.runsScored | default(0) ~ ' (' ~ fw.ballsFaced | default(0) ~ ')'
+                    ~ (' ' ~ how.t if how.t else '') ~ ' · ' ~ fw.runs | default(0) ~ '/'
+                    ~ fw.wicketNumber] -%}
+            {%- endif -%}
+            {#- last two overs, oldest ball first -#}
+            {%- if balls -%}
+              {%- set last_over = (balls[0].over | default({})).number | default(0) -%}
+              {%- for b in balls | reverse -%}
+                {%- set o = (b.over | default({})).number | default(-9) -%}
+                {%- if o >= last_over - 1 -%}
+                  {%- if ns.cur != -1 and o != ns.cur -%}{%- set ns.tok = ns.tok + ['/'] -%}{%- endif -%}
+                  {%- set ns.cur = o -%}
+                  {%- set t = b.shortText | default('') | lower -%}
+                  {%- set v = b.scoreValue | default(0) | int(0) -%}
+                  {%- set ns.tok = ns.tok + ['W' if (b.dismissal | default({})).dismissal | default(false)
+                      else (v | string if v > 1 else '') ~ 'wd' if 'wide' in t
+                      else v ~ 'nb' if 'no ball' in t
+                      else v ~ 'lb' if 'leg bye' in t
+                      else v ~ 'b' if ' bye' in t
+                      else v | string] -%}
+                {%- endif -%}
+              {%- endfor -%}
+              {%- set ns.l = ns.l + ['Z|' ~ ns.tok | join(' ')] -%}
             {%- endif -%}
             {{ ns.l | join('\n') }}
 
