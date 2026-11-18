@@ -10,11 +10,16 @@
 #       text:     up to 3 matches, "kind|label|player A|player B|A sets|B sets|winner"
 #                 kind L = live, U = upcoming today, R = result; sets "6,3"; winner 0/1/2.
 #                 Or a single "N|message" line when there is nothing to show.
+#       full:     same lines plus the round, up to 5 (live first), for the full-width
+#                 tennis panel: "kind|label|player A|player B|A sets|B sets|winner|round"
 #       hourly:   next 12 hours, "3 PM|57|20" = hour|temperature|precipitation
 #       precip_unit: "%" (chance) or the provider's amount unit (e.g. "mm") when it has no chance
 #       sun:      "6:42 AM|4:31 PM" (next sunrise|next sunset)
 #   sensor.epaper_cricket   state = live / next / none / unavailable
 #       text:     styled lines "B|big", "N|normal", "G|grey small"
+#       full:     while live, for the full-width cricket panel (empty otherwise):
+#                 "H|series · format", "I|team|runs/wickets|overs|run rate" per innings
+#                 (oldest first, the last one is batting now), "S|status", "G|next match"
 #   sensor.epaper_news      state = headline count; text = up to 6 headlines, one per line
 # Inputs: weather.home, sun.sun, sports.yaml (tennis sensors, sensor.sports_cricket_status),
 # NPR top stories RSS (rest_command below, every 30 minutes).
@@ -145,6 +150,21 @@ template:
             {%- else -%}
               N|No followed tennis matches
             {%- endif -%}
+          full: >-
+            {%- set ns = namespace(l=[]) -%}
+            {%- for m in state_attr('sensor.sports_live_matches', 'matches') or [] -%}
+              {%- set ns.l = ns.l + ['L|LIVE|' ~ m.a ~ '|' ~ m.b ~ '|' ~ m.sa | join(',')
+                                     ~ '|' ~ m.sb | join(',') ~ '|0|' ~ m.round | default('')] -%}
+            {%- endfor -%}
+            {%- for m in state_attr('sensor.sports_upcoming_today', 'matches') or [] -%}
+              {%- set ns.l = ns.l + ['U|' ~ ('TBD' if m.tbd else m.time) ~ '|' ~ m.a ~ '|' ~ m.b
+                                     ~ '|||0|' ~ m.round | default('')] -%}
+            {%- endfor -%}
+            {%- for m in state_attr('sensor.sports_recent_results', 'matches') or [] -%}
+              {%- set ns.l = ns.l + ['R|FINAL|' ~ m.a ~ '|' ~ m.b ~ '|' ~ m.sa | join(',')
+                                     ~ '|' ~ m.sb | join(',') ~ '|' ~ m.w ~ '|' ~ m.round | default('')] -%}
+            {%- endfor -%}
+            {{ ns.l[:5] | join('\n') }}
 
   # Cricket (Team India): reformats sensor.sports_cricket_status (the notifier's /status JSON).
   - sensor:
@@ -198,6 +218,36 @@ template:
               {%- endif -%}
             {%- endif -%}
             {{ ns.l | join('\n') | replace('\n\n', '\n') }}
+          full: >-
+            {%- set e = 'sensor.sports_cricket_status' -%}
+            {%- set c = state_attr(e, 'current') -%}
+            {%- set n = state_attr(e, 'next') -%}
+            {%- set ns = namespace(l=[]) -%}
+            {%- if states(e) not in ['unavailable', 'unknown']
+                   and state_attr(e, 'live') is true and c is mapping -%}
+              {%- set head = [c.series | default('', true), c.format | default('', true)]
+                             | select | join(' · ') or c.title | default('', true) -%}
+              {%- if head -%}{%- set ns.l = ns.l + ['H|' ~ head] -%}{%- endif -%}
+              {%- for i in c.innings | default([], true) -%}
+                {#- run rate from overs "14.2" = 14 overs and 2 balls -#}
+                {%- set ov = i.overs | default('', true) | string -%}
+                {%- set p = ov.split('.') -%}
+                {%- set balls = (p[0] | int(0)) * 6 + ((p[1] | int(0)) if p | count > 1 else 0) -%}
+                {%- set runs = i.runs | default(0, true) | int(0) -%}
+                {%- set ns.l = ns.l + ['I|' ~ i.team | default('?', true) | replace('|', '/')
+                      ~ '|' ~ runs ~ '/' ~ i.wickets | default(0, true)
+                      ~ '|' ~ ov ~ '|' ~ ('%.2f' | format(runs * 6 / balls) if balls > 0 else '')] -%}
+              {%- endfor -%}
+              {%- if c.status_text | default('', true) -%}
+                {%- set ns.l = ns.l + ['S|' ~ c.status_text | replace('|', '/')] -%}
+              {%- endif -%}
+              {%- if n is mapping -%}
+                {%- set ns.l = ns.l + ['G|Next: ' ~ (n.teams | default([], true) | join(' v ')
+                      or n.title | default('TBD', true)) ~ ' · '
+                      ~ n.start_time_local | default('time TBD', true)] -%}
+              {%- endif -%}
+            {%- endif -%}
+            {{ ns.l | join('\n') }}
 
   # News: NPR top stories, every 30 minutes. The feed is RSS (XML); the headlines are pulled
   # out of the <title> tags (the first one is the feed's own name, so it is skipped).
