@@ -1,0 +1,93 @@
+# CleanCut (small web app to cut scenes out of a movie; keeps the original as
+# "<movie>.orig" next to it), reached via traefik-gateway at
+# cleancut.homelab.lan (http and https). Mounts the OMV library read-write at /data.
+# Code: cleancut.py (configMapGenerator cleancut-app in kustomization.yaml).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cleancut
+  namespace: media
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: cleancut
+  template:
+    metadata:
+      labels:
+        app: cleancut
+    spec:
+      containers:
+        - name: cleancut
+          image: python:3.13-alpine3.22
+          # ffmpeg is installed at start (needs root), then the app drops to RUN_AS
+          # so files on the NFS library are written as the same user as FileBrowser.
+          command: ["sh", "-c", "apk add --no-cache ffmpeg su-exec && exec su-exec \"$RUN_AS\" python -u /app/app.py"]
+          env:
+            - name: RUN_AS
+              # FileBrowser's runAsUser 1000 / runAsGroup 100 (filebrowser.yaml).
+              value: "1000:100"
+            - name: MOVIES_DIR
+              value: /data/Video/Movies
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: "4"
+              memory: 3Gi
+          volumeMounts:
+            - name: app
+              mountPath: /app
+            - name: library
+              mountPath: /data
+      volumes:
+        - name: app
+          configMap:
+            name: cleancut-app
+        - name: library
+          persistentVolumeClaim:
+            claimName: library  # media-library.yaml
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cleancut
+  namespace: media
+spec:
+  selector:
+    app: cleancut
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: cleancut
+  namespace: media
+spec:
+  parentRefs:
+    - name: traefik-gateway
+      namespace: traefik
+      sectionName: web
+    - name: traefik-gateway
+      namespace: traefik
+      sectionName: websecure
+  hostnames:
+    - cleancut.homelab.lan
+  rules:
+    - backendRefs:
+        - name: cleancut
+          port: 80

@@ -10,6 +10,8 @@ resources:
   - jellyfin.yaml
   - plex.yaml
   - filebrowser.yaml
+  # Scene-cutting web app; its code is generated below.
+  - cleancut.yaml
   # One pod (shared VPN) for qBittorrent, Transmission, Radarr, Sonarr and
   # Seerr; the per-app files hold their volumes, Services and routes.
   - downloads.yaml
@@ -50,3 +52,7 @@ configMapGenerator:
   - name: filebrowser-config
     files:
       - config.yaml=filebrowser-config.yaml
+  # CleanCut app (cleancut.yaml), mounted at /app; a code change rolls the pod.
+  - name: cleancut-app
+    files:
+      - app.py=cleancut.py

@@ -31,3 +31,8 @@
         - abbr: FB
           icon: mdi-folder
           href: https://media.homelab.lan
+    - CleanCut:
+        - abbr: CC
+          icon: mdi-movie-edit
+          href: https://cleancut.homelab.lan
+          description: Make kid-friendly cuts
