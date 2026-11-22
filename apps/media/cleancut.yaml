@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: cleancut
-          image: python:3.13-alpine3.22
+          image: python:3.15-alpine3.24
           # ffmpeg is installed at start (needs root), then the app drops to RUN_AS
           # so files on the NFS library are written as the same user as FileBrowser.
           command: ["sh", "-c", "apk add --no-cache ffmpeg su-exec && exec su-exec \"$RUN_AS\" python -u /app/app.py"]
