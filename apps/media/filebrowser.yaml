@@ -46,7 +46,7 @@ spec:
         - name: filebrowser
           # Full variant (not -slim): includes ffmpeg/mupdf for video and PDF
           # thumbnails.
-          image: gtstef/filebrowser:2.0.2-stable
+          image: gtstef/filebrowser:2.1.0-stable
           # umask 002 so the config's createFilePermission 664 /
           # createDirectoryPermission 775 reach the NFS library unmasked.
           command: ["/bin/sh", "-c", "umask 002 && exec ./filebrowser"]
